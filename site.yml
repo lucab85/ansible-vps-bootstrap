@@ -4,23 +4,12 @@
   become: true
   gather_facts: true
 
-  vars:
-    admin_user: deploy
-    admin_ssh_public_key: ""
-    server_timezone: Europe/Rome
-    swap_size_mb: 4096
-    swap_swappiness: 10
-    ssh_disable_root_login: false
-    ssh_disable_password_auth: false
-    ufw_allowed_tcp_ports: [22, 80, 443]
-    apps_root: /opt/apps
-
   pre_tasks:
     - name: Verify supported operating system
       ansible.builtin.assert:
         that:
-          - ansible_distribution == 'Ubuntu'
-          - ansible_distribution_version is version('24.04', '>=')
+          - ansible_facts['distribution'] == 'Ubuntu'
+          - ansible_facts['distribution_version'] is version('24.04', '>=')
         fail_msg: This playbook requires Ubuntu 24.04 or newer.
 
     - name: Require a public key before disabling SSH password or root login
@@ -141,9 +130,9 @@
         name: docker
         types: [deb]
         uris: https://download.docker.com/linux/ubuntu
-        suites: ["{{ ansible_distribution_release }}"]
+        suites: ["{{ ansible_facts['distribution_release'] }}"]
         components: [stable]
-        architectures: ["{{ ansible_architecture | replace('x86_64', 'amd64') | replace('aarch64', 'arm64') }}"]
+        architectures: ["{{ ansible_facts['architecture'] | replace('x86_64', 'amd64') | replace('aarch64', 'arm64') }}"]
         signed_by: /etc/apt/keyrings/docker.asc
         state: present
       register: docker_repo
