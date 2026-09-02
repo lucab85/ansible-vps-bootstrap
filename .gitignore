@@ -1,0 +1,12 @@
+# Real inventory and host-specific variables may contain IPs or secrets.
+inventory.ini
+group_vars/vps.yml
+
+# Ansible runtime files
+*.retry
+.ansible/
+
+# Local editor and OS metadata
+.DS_Store
+.idea/
+.vscode/
