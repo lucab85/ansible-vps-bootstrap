@@ -1,0 +1,19 @@
+---
+admin_user: deploy
+admin_ssh_public_key: "ssh-ed25519 AAAA... replace-me"
+
+server_timezone: Europe/Rome
+swap_size_mb: 4096
+swap_swappiness: 10
+
+# Enable only after confirming that SSH key login as `admin_user` works.
+ssh_disable_root_login: false
+ssh_disable_password_auth: false
+
+ufw_allowed_tcp_ports:
+  - 22
+  - 80
+  - 443
+
+apps_root: /opt/apps
+
