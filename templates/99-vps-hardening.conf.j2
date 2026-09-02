@@ -1,0 +1,6 @@
+PermitRootLogin {{ 'no' if ssh_disable_root_login | bool else 'yes' }}
+PasswordAuthentication {{ 'no' if ssh_disable_password_auth | bool else 'yes' }}
+KbdInteractiveAuthentication no
+PubkeyAuthentication yes
+X11Forwarding no
+MaxAuthTries 4
