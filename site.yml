@@ -1,0 +1,234 @@
+---
+- name: Bootstrap Ubuntu VPS for Docker workloads
+  hosts: vps
+  become: true
+  gather_facts: true
+
+  vars:
+    admin_user: deploy
+    admin_ssh_public_key: ""
+    server_timezone: Europe/Rome
+    swap_size_mb: 4096
+    swap_swappiness: 10
+    ssh_disable_root_login: false
+    ssh_disable_password_auth: false
+    ufw_allowed_tcp_ports: [22, 80, 443]
+    apps_root: /opt/apps
+
+  pre_tasks:
+    - name: Verify supported operating system
+      ansible.builtin.assert:
+        that:
+          - ansible_distribution == 'Ubuntu'
+          - ansible_distribution_version is version('24.04', '>=')
+        fail_msg: This playbook requires Ubuntu 24.04 or newer.
+
+    - name: Require a public key before disabling SSH password or root login
+      ansible.builtin.assert:
+        that:
+          - admin_ssh_public_key | length > 30
+        fail_msg: Set admin_ssh_public_key before enabling SSH lock-down.
+      when: ssh_disable_root_login | bool or ssh_disable_password_auth | bool
+
+  tasks:
+    - name: Update APT cache and upgrade installed packages
+      ansible.builtin.apt:
+        update_cache: true
+        upgrade: dist
+        cache_valid_time: 3600
+
+    - name: Install base packages
+      ansible.builtin.apt:
+        name:
+          - ca-certificates
+          - curl
+          - git
+          - htop
+          - nano
+          - unattended-upgrades
+          - ufw
+        state: present
+
+    - name: Set timezone
+      community.general.timezone:
+        name: "{{ server_timezone }}"
+
+    - name: Create administrator account
+      ansible.builtin.user:
+        name: "{{ admin_user }}"
+        groups: sudo
+        append: true
+        shell: /bin/bash
+        create_home: true
+
+    - name: Allow administrator passwordless sudo
+      ansible.builtin.copy:
+        dest: "/etc/sudoers.d/{{ admin_user }}"
+        content: "{{ admin_user }} ALL=(ALL) NOPASSWD:ALL\n"
+        owner: root
+        group: root
+        mode: "0440"
+        validate: /usr/sbin/visudo -cf %s
+
+    - name: Install administrator SSH key
+      ansible.posix.authorized_key:
+        user: "{{ admin_user }}"
+        key: "{{ admin_ssh_public_key }}"
+        state: present
+      when: admin_ssh_public_key | length > 30
+
+    - name: Configure SSH hardening drop-in
+      ansible.builtin.template:
+        src: templates/99-vps-hardening.conf.j2
+        dest: /etc/ssh/sshd_config.d/99-vps-hardening.conf
+        owner: root
+        group: root
+        mode: "0644"
+        validate: /usr/sbin/sshd -t -f %s
+      notify: Restart SSH
+
+    - name: Create swap file
+      ansible.builtin.command:
+        cmd: "fallocate -l {{ swap_size_mb }}M /swapfile"
+        creates: /swapfile
+
+    - name: Secure swap file permissions
+      ansible.builtin.file:
+        path: /swapfile
+        owner: root
+        group: root
+        mode: "0600"
+
+    - name: Detect swap signature
+      ansible.builtin.command: blkid -s TYPE -o value /swapfile
+      register: swap_type
+      changed_when: false
+      failed_when: false
+
+    - name: Format swap file
+      ansible.builtin.command: mkswap /swapfile
+      when: swap_type.stdout != 'swap'
+
+    - name: Enable swap file
+      ansible.builtin.command: swapon /swapfile
+      register: swapon_result
+      changed_when: swapon_result.rc == 0
+      failed_when: swapon_result.rc != 0 and 'Device or resource busy' not in swapon_result.stderr
+
+    - name: Persist swap mount
+      ansible.posix.mount:
+        name: none
+        src: /swapfile
+        fstype: swap
+        opts: sw
+        state: present
+
+    - name: Tune swap usage
+      ansible.posix.sysctl:
+        name: vm.swappiness
+        value: "{{ swap_swappiness }}"
+        state: present
+        sysctl_set: true
+
+    - name: Install Docker signing key
+      ansible.builtin.get_url:
+        url: https://download.docker.com/linux/ubuntu/gpg
+        dest: /etc/apt/keyrings/docker.asc
+        mode: "0644"
+
+    - name: Add official Docker repository
+      ansible.builtin.deb822_repository:
+        name: docker
+        types: [deb]
+        uris: https://download.docker.com/linux/ubuntu
+        suites: ["{{ ansible_distribution_release }}"]
+        components: [stable]
+        architectures: ["{{ ansible_architecture | replace('x86_64', 'amd64') | replace('aarch64', 'arm64') }}"]
+        signed_by: /etc/apt/keyrings/docker.asc
+        state: present
+      register: docker_repo
+
+    - name: Refresh APT cache after adding Docker repository
+      ansible.builtin.apt:
+        update_cache: true
+      when: docker_repo.changed
+
+    - name: Install Docker Engine and Compose
+      ansible.builtin.apt:
+        name:
+          - docker-ce
+          - docker-ce-cli
+          - containerd.io
+          - docker-buildx-plugin
+          - docker-compose-plugin
+        state: present
+
+    - name: Add administrator to docker group
+      ansible.builtin.user:
+        name: "{{ admin_user }}"
+        groups: docker
+        append: true
+
+    - name: Configure Docker log limits
+      ansible.builtin.template:
+        src: templates/docker-daemon.json.j2
+        dest: /etc/docker/daemon.json
+        owner: root
+        group: root
+        mode: "0644"
+      notify: Restart Docker
+
+    - name: Enable and start Docker
+      ansible.builtin.systemd_service:
+        name: docker
+        enabled: true
+        state: started
+
+    - name: Create application directories
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: directory
+        owner: "{{ admin_user }}"
+        group: "{{ admin_user }}"
+        mode: "0750"
+      loop:
+        - "{{ apps_root }}"
+        - "{{ apps_root }}/proxy"
+        - "{{ apps_root }}/n8n"
+        - "{{ apps_root }}/medusa"
+        - "{{ apps_root }}/backups"
+
+    - name: Allow required TCP ports through UFW
+      community.general.ufw:
+        rule: allow
+        port: "{{ item }}"
+        proto: tcp
+      loop: "{{ ufw_allowed_tcp_ports }}"
+
+    - name: Enable UFW with inbound deny policy
+      community.general.ufw:
+        state: enabled
+        policy: deny
+        direction: incoming
+
+    - name: Enable automatic security updates
+      ansible.builtin.copy:
+        dest: /etc/apt/apt.conf.d/20auto-upgrades
+        owner: root
+        group: root
+        mode: "0644"
+        content: |
+          APT::Periodic::Update-Package-Lists "1";
+          APT::Periodic::Unattended-Upgrade "1";
+
+  handlers:
+    - name: Restart SSH
+      ansible.builtin.systemd_service:
+        name: ssh
+        state: restarted
+
+    - name: Restart Docker
+      ansible.builtin.systemd_service:
+        name: docker
+        state: restarted
+
