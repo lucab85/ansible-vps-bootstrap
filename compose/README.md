@@ -1,137 +1,143 @@
-# App stack: n8n + Medusa (backend + storefront)
+# App stack: n8n + Medusa backend + monitoring
 
 Deployed on top of the `ansible-vps-bootstrap` base. Not run by the Ansible
-playbook — deployed by hand over SSH, directly on the VPS under `/opt/apps`.
-This directory is the version-controlled mirror of what's actually deployed.
+playbook — deployed over SSH, directly on the VPS under `/opt/apps`. This
+directory is the version-controlled mirror of the infra config that's
+actually deployed; it does **not** contain application source code (see
+"Where the code lives" below).
 
 ## Domains
 
-| Service            | Domain                  |
-|--------------------|--------------------------|
-| n8n                | `n8n.openempower.com`   |
-| Medusa storefront  | `shop.techmeout.it`     |
-| Medusa backend/admin | `admin.techmeout.it`  |
+| Service              | Domain                       | Hosted on |
+|-----------------------|-------------------------------|-----------|
+| n8n                   | `n8n.openempower.com`        | VPS |
+| Medusa backend/admin  | `admin.techmeout.it`         | VPS |
+| Medusa storefront     | `shop.techmeout.it`          | Vercel (not this VPS) |
+| Grafana               | `monitor.openempower.com`    | VPS |
 
-DNS A records for all three must point at the VPS IP before Caddy can issue
-Let's Encrypt certificates — it retries automatically once they resolve.
+DNS A records must point at the VPS IP (except the storefront, which points
+at Vercel) before Caddy can issue Let's Encrypt certificates — it retries
+automatically once they resolve, but if it already exhausted its retry
+attempts it backs off for up to 2 hours; `docker exec apps-caddy-1 caddy
+reload --config /etc/caddy/Caddyfile` (after editing the Caddyfile) or
+`docker restart apps-caddy-1` forces an immediate retry instead of waiting.
+
+## Where the code lives
+
+- **Backend** (Medusa v2 API + Admin): [`techmeout-medusa`](https://github.com/lucab85/techmeout-medusa),
+  a separate private repo. GitHub Actions (`.github/workflows/deploy.yml` in
+  that repo) rsyncs it to `/opt/apps/medusa` on the VPS and rebuilds on every
+  push to `main`, using a dedicated SSH deploy key (not the personal one used
+  for manual access) stored as repo secrets (`VPS_SSH_KEY`, `VPS_HOST`,
+  `VPS_USER`).
+- **Storefront** (Next.js): [`techmeout-storefront`](https://github.com/lucab85/techmeout-storefront),
+  deployed on Vercel (project `openempower/techmeout-storefront`), connected
+  to the GitHub repo for auto-deploy on push. Not on the VPS at all — this is
+  the one thing in the original architecture that moved off-box.
+- **This repo's `compose/`** only owns the infra layer: Postgres, Redis,
+  Caddy, n8n, how the backend image gets built from the checked-out
+  `techmeout-medusa` repo, and the monitoring stack below.
 
 ## Layout
 
-- `docker-compose.yml` — 6 services: `caddy`, `postgres`, `redis`, `n8n`, `medusa`, `storefront`.
-  One Postgres instance with two databases (`n8n`, `medusa`), one shared Redis.
-- `postgres/init/01-databases.sh` — creates the `n8n` and `medusa` databases on first boot.
-- `proxy/Caddyfile` — reverse proxy + automatic HTTPS for the three domains.
-- `medusa/apps/backend/Dockerfile`, `medusa/apps/storefront/Dockerfile` — build the
-  Medusa v2 backend and Next.js storefront from the scaffolded monorepo (see below).
-  `medusa/apps/backend/medusa-config.ts` and `medusa/.dockerignore` are also tracked here.
-- `.env.example` — template for the real `/opt/apps/.env` on the VPS (secrets, never committed).
-- `configure-env.sh` — run **on the VPS**, reads `/opt/apps/.env` and writes the derived
-  `apps/backend/.env` and `apps/storefront/.env.local` inside the scaffolded Medusa project.
+- `docker-compose.yml` — 12 services. App layer: `caddy`, `postgres`, `redis`,
+  `n8n`, `medusa`. Monitoring layer: `node-exporter`, `postgres-exporter`,
+  `redis-exporter`, `prometheus`, `loki`, `promtail`, `grafana`. One Postgres
+  instance with databases `n8n` and `medusa`, one shared Redis.
+- `postgres/init/01-databases.sh` — creates the `n8n` and `medusa` databases
+  on first boot. `02-monitoring-user.sh` — creates a read-only
+  `postgres_exporter` role (`pg_monitor`) for Prometheus to scrape with,
+  instead of reusing the app's own credentials. Both only run automatically
+  against a **fresh** Postgres data dir (`docker-entrypoint-initdb.d`
+  semantics) — against an already-initialized volume, run the SQL by hand
+  once instead (see git history of this file for the exact commands used).
+- `proxy/Caddyfile` — reverse proxy + automatic HTTPS for `n8n.openempower.com`,
+  `admin.techmeout.it`, `monitor.openempower.com`. (`shop.techmeout.it` is
+  Vercel's problem now, not in here.)
+- `monitoring/prometheus/prometheus.yml` — scrape configs for the 3 exporters.
+- `monitoring/loki/loki-config.yml`, `monitoring/promtail/promtail-config.yml` —
+  log aggregation; Promtail discovers containers via the Docker socket
+  (`docker_sd_configs`), ships all container logs to Loki. 7-day retention.
+- `monitoring/grafana/provisioning/` — datasources (Prometheus + Loki) and a
+  starter dashboard (`vps-overview.json`: host CPU/mem/disk/network, Postgres
+  connections, Redis memory, disk free, a logs panel) provisioned
+  automatically on boot — no manual Grafana setup needed.
+- `.env.example` — template for the real `/opt/apps/.env` on the VPS
+  (secrets, never committed).
+- `configure-env.sh` — run **on the VPS**, reads `/opt/apps/.env` and writes
+  the derived `/opt/apps/medusa/.env` (backend runtime config).
 
-The scaffolded Medusa project itself (`apps/backend`, `apps/storefront` source code,
-generated by `create-medusa-app`) is **not** tracked in this repo — it's a full
-generated app monorepo with its own `node_modules`/lockfile, live on the VPS at
-`/opt/apps/medusa`. If it needs its own version control, give it its own repo.
+## Deploying the backend
 
-## How it was deployed (runbook)
+Normal path: push to `techmeout-medusa`'s `main` branch — GitHub Actions
+handles the rest (rsync + `docker compose build medusa && docker compose up
+-d medusa`).
 
-1. On the VPS: `mkdir -p /opt/apps/{postgres/init,proxy,medusa}`.
-2. Generate secrets and write `/opt/apps/.env` (see `.env.example` for the keys):
-   `POSTGRES_PASSWORD`, `JWT_SECRET`, `COOKIE_SECRET`, `N8N_ENCRYPTION_KEY` via
-   `openssl rand`; `chmod 600`.
-3. Copy `postgres/init/01-databases.sh`, `proxy/Caddyfile`, `docker-compose.yml` to
-   the matching paths under `/opt/apps`.
-4. `docker compose up -d postgres redis n8n caddy` — bring up the base services first
-   (Postgres must be up and healthy before scaffolding Medusa against it).
-5. Scaffold Medusa v2 + Next.js storefront using a throwaway Node container (no Node
-   installed on the host):
-   ```
-   docker run --rm --network apps_apps -v /opt/apps:/opt/apps -w /opt/apps node:20 \
-     npx --yes create-medusa-app@latest medusa \
-     --skip-db --with-nextjs-starter --no-browser \
-     --directory-path /opt/apps --use-npm
-   ```
-   `--skip-db` scaffolds the project only, without touching the database or prompting
-   for an admin user — those are done explicitly in later steps for full non-interactive
-   control. This produces a Turborepo monorepo: `apps/backend` (Medusa) + `apps/storefront`
-   (Next.js), workspace names `@dtc/backend` / `@dtc/storefront`.
-6. `sudo chown -R deploy:deploy /opt/apps/medusa` — the scaffold container runs as root.
-7. Copy `medusa/apps/backend/medusa-config.ts` and `medusa/.dockerignore` into the
-   scaffolded project; copy `configure-env.sh` to the VPS and run it there to derive
-   the real `apps/backend/.env` and `apps/storefront/.env.local` from `/opt/apps/.env`.
-8. Copy `medusa/apps/backend/Dockerfile` and `medusa/apps/storefront/Dockerfile` into
-   the scaffolded project at the same relative paths.
-9. Build `medusa` first (**sequentially**, not in parallel, to avoid OOM on a 4 GB VPS):
-   `docker compose build medusa`, then `docker compose up -d medusa`. The backend's
-   `CMD` runs `npx medusa db:migrate && npx medusa db:sync-links && npm run start`
-   (the `predeploy` script some docs mention doesn't exist in the generated
-   `.medusa/server/package.json` — call the CLI commands directly instead).
-   The generated backend starter also runs an `initial-data-seed` migration script
-   automatically on first migrate, creating a demo region/products/publishable key —
-   no separate seed step needed.
-10. **Critical fix**: with the default `medusa-config.ts`, migrations fail after
-    exactly 10s with `Could not connect to the database ... SSL configuration issue`
-    even though the same `DATABASE_URL` connects fine with a raw `pg` client — MikroORM
-    attempts SSL against a Postgres server that doesn't support it and hangs until
-    Medusa's own timeout kills it. Fix: add `databaseDriverOptions: { connection: { ssl: false } }`
-    to `projectConfig` in `medusa-config.ts` (already in the tracked version here).
-11. Once the backend is up, get its auto-seeded publishable API key directly from
-    Postgres: `docker exec apps-postgres-1 psql -U appuser -d medusa -c "SELECT token FROM api_key WHERE type='publishable';"`.
-    Also check which country codes the seeded region actually covers
-    (`SELECT iso_2 FROM region_country WHERE region_id='...'`) before picking
-    `NEXT_PUBLIC_DEFAULT_REGION` — it must match one of them or the storefront's
-    root redirect breaks. Set `MEDUSA_PUBLISHABLE_KEY` in `/opt/apps/.env`, re-run
-    `configure-env.sh`.
-12. Build and start `storefront` (`docker compose build storefront`). This only works
-    once the backend is reachable over its real public HTTPS URL — Next.js prerenders
-    product/collection pages at build time by fetching from
-    `NEXT_PUBLIC_MEDUSA_BACKEND_URL`, which is baked into the client bundle, so it must
-    already be the real public domain (not an internal Docker hostname) and DNS/TLS
-    must already be working. Then `docker compose up -d`.
-13. Create the Medusa admin user: `docker compose exec medusa npx medusa user -e <email> -p <password>`.
-14. **Second critical fix**: the Admin dashboard (`/app`) loads its HTML/JS/CSS fine (200 OK)
-    but crashes on render with `Minified React error #31` (visible only in the browser
-    console/Playwright, not in curl or server logs) — a blank page with no login form.
-    Root cause: `create-medusa-app --with-nextjs-starter` produces a single npm-workspaces
-    monorepo where dependency hoisting picks **one** React version repo-wide; it picks
-    React 19 (required by the Next.js storefront), but the hoisted `@medusajs/dashboard`
-    package needs React 18 and crashes when bundled/served against React 19
-    ([medusajs/medusa#15398](https://github.com/medusajs/medusa/issues/15398)). Since the
-    backend and storefront are built as two **separate, isolated** Docker images (each
-    runs its own `npm ci` from a fresh `COPY . .`), the fix is scoped to just the backend
-    Dockerfile — add `RUN npm install --no-save react@18.3.1 react-dom@18.3.1` at the repo
-    root right after `npm ci` and before `turbo build`, which doesn't touch the storefront's
-    separate build at all. (An earlier attempt scoped the override to
-    `apps/backend/node_modules` specifically — that didn't work, because `@medusajs/dashboard`
-    itself lives in the hoisted *root* `node_modules`, so Node's resolution walks up from
-    there and never sees an override placed under `apps/backend`.)
-14. Verify: `docker compose ps` all healthy; `https://admin.techmeout.it/app` (Admin
-    login), `https://shop.techmeout.it` (storefront), `https://n8n.openempower.com`
-    (n8n setup) — all over HTTPS once DNS has propagated. If Caddy already burned
-    through its retry attempts before DNS was ready, it backs off for up to 2 hours —
-    `docker restart apps-caddy-1` forces an immediate retry instead of waiting.
-15. `docker builder prune -f` after the last build — iterative Dockerfile changes leave
-    behind several GB of stale build cache (BuildKit doesn't garbage-collect it
-    automatically), which matters on a 60 GB disk.
+Manual path (first bring-up, or debugging): rsync the repo to
+`/opt/apps/medusa` yourself, then run the same two commands over SSH.
+`medusa-config.ts` in that repo must keep
+`databaseDriverOptions.connection.ssl: false` — without it, migrations fail
+after exactly 10s with a misleading "SSL configuration issue" error even
+though the same `DATABASE_URL` connects fine with a raw `pg` client
+(MikroORM attempts SSL against a Postgres server that doesn't support it and
+hangs until Medusa's own timeout kills it).
+
+The backend's `CMD` runs `npx medusa db:migrate && npx medusa db:sync-links
+&& npm run start` — not the `predeploy` script some Medusa docs mention,
+which doesn't exist in the generated `.medusa/server/package.json`.
+
+## Monitoring stack
+
+Everything lives behind Grafana at `https://monitor.openempower.com`
+(Grafana's own login, `GF_SECURITY_ADMIN_PASSWORD` from `/opt/apps/.env`) —
+Prometheus, Loki, and all the exporters are only reachable on the internal
+`apps` Docker network, not published to the host or the internet.
+
+- **Metrics**: node-exporter (host CPU/mem/disk/network), postgres-exporter,
+  redis-exporter — all scraped by Prometheus every 15s, 15-day retention.
+- **Logs**: Promtail tails every container's logs via the Docker socket and
+  ships them to Loki (7-day retention). Query with `{container="apps-medusa-1"}`
+  etc. in Grafana's Explore view, or use the "Container logs" panel on the
+  overview dashboard.
+- Added ~400MB RAM total across the new containers — checked against actual
+  headroom before deploying (VPS had ~2.8GB available at the time), not just
+  assumed to fit.
+- **No per-container CPU/memory breakdown** — cAdvisor was tried and removed.
+  Docker 29 on this VPS defaults to the containerd-snapshotter image store,
+  which broke cAdvisor's Docker factory (it looks for a classic overlay2
+  `layerdb` that no longer exists, per-container, forever). cAdvisor does
+  register a containerd factory that talks to `/run/containerd/containerd.sock`
+  directly and would work with the right `-containerd-namespace=moby` flag,
+  but the (broken) Docker factory always wins the "who owns this container"
+  race and the containerd one never gets a chance — v0.49.1 has no flag to
+  disable Docker detection. Net effect: it produced zero working data and
+  just spammed errors into its own logs (which Loki was faithfully ingesting).
+  Removed rather than left running broken. `docker stats` on the VPS covers
+  this in the meantime; revisit if a cAdvisor release fixes the factory
+  priority, or if per-container metrics become actually necessary (e.g.
+  chasing a specific memory leak) rather than nice-to-have.
 
 ## Notes
 
-- `MEDUSA_WORKER_MODE` is left unset (defaults to `shared`) — a single Medusa instance
-  handles both the API and background jobs. Not worth splitting into separate
-  server/worker containers on a $5/mo VPS unless load grows.
-- Dockerfiles are intentionally simple single-stage builds (copy whole monorepo, `npm ci`,
-  `turbo build --filter=...`), not slimmed multi-stage — trades some image size for
-  reliability on a first deploy. Worth revisiting if disk (60 GB total) gets tight.
-  Both `npm install` steps use a `--mount=type=cache,target=/root/.npm` BuildKit cache
-  mount so repeated builds during iteration don't re-download the npm registry each time.
-- Setting `projectConfig.redisUrl` alone does **not** switch Medusa's event bus/locking
-  to Redis — startup logs still show `Local Event Bus installed. This is not recommended
-  for production.` and `Locking module: Using "in-memory" as default.`. Getting real
-  Redis-backed event bus + locking requires explicitly registering
-  `@medusajs/medusa/event-bus-redis` and `@medusajs/medusa/workflow-engine-redis` in the
-  `modules` array. Left as in-memory for now since a single `shared`-mode instance doesn't
-  need it — revisit if this ever runs more than one Medusa instance.
-- Disk/log hygiene (Docker image/build-cache pruning, log rotation, n8n execution pruning,
-  off-VPS backups, disk-usage alerting) is a known follow-up, not yet implemented as
-  anything automatic — it was done by hand once after the initial builds
-  (`docker builder prune -f`, freed ~12 GB of stale BuildKit cache).
+- `MEDUSA_WORKER_MODE` is left unset (defaults to `shared`) — a single Medusa
+  instance handles both the API and background jobs. Not worth splitting into
+  separate server/worker containers on a $5/mo VPS unless load grows.
+- The backend Dockerfile is a simple single-stage build (`npm ci`, `npm run
+  build`, install prod deps into `.medusa/server`), using a
+  `--mount=type=cache,target=/root/.npm` BuildKit cache mount so repeated
+  builds don't re-download the npm registry each time. It used to need a
+  React-18 override to work around a hoisting conflict with the storefront
+  when both lived in one Turborepo monorepo — that's gone now that the
+  backend is a standalone repo with no sibling storefront workspace forcing
+  React 19 into the same dependency tree.
+- Setting `projectConfig.redisUrl` alone does **not** switch Medusa's event
+  bus/locking to Redis — startup logs still show `Local Event Bus installed.
+  This is not recommended for production.` Getting real Redis-backed event
+  bus + locking requires explicitly registering
+  `@medusajs/medusa/event-bus-redis` and `@medusajs/medusa/workflow-engine-redis`
+  in the `modules` array. Left as in-memory for now since a single
+  `shared`-mode instance doesn't need it.
+- Disk/log hygiene beyond Loki's 7-day retention (Docker image/build-cache
+  pruning, n8n execution pruning, off-VPS backups, disk-usage alerting) is a
+  known follow-up, not yet automated — `docker builder prune -f` has been run
+  by hand a few times after iterative builds.

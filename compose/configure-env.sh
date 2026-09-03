@@ -3,8 +3,7 @@ set -euo pipefail
 
 source /opt/apps/.env
 
-BACKEND_ENV=/opt/apps/medusa/apps/backend/.env
-STOREFRONT_ENV=/opt/apps/medusa/apps/storefront/.env.local
+BACKEND_ENV=/opt/apps/medusa/.env
 
 cat > "$BACKEND_ENV" <<EOF
 NODE_ENV=production
@@ -22,14 +21,4 @@ MEDUSA_BACKEND_URL=${MEDUSA_BACKEND_URL}
 EOF
 chmod 600 "$BACKEND_ENV"
 
-cat > "$STOREFRONT_ENV" <<EOF
-NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY=${MEDUSA_PUBLISHABLE_KEY}
-NEXT_PUBLIC_MEDUSA_BACKEND_URL=${MEDUSA_BACKEND_URL}
-NEXT_PUBLIC_DEFAULT_REGION=it
-NEXT_PUBLIC_BASE_URL=${STOREFRONT_URL}
-NEXT_PUBLIC_STRIPE_KEY=
-NODE_ENV=production
-EOF
-chmod 600 "$STOREFRONT_ENV"
-
-echo "Backend and storefront env files written."
+echo "Backend env file written."

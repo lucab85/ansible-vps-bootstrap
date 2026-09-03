@@ -2,10 +2,10 @@ n8n.openempower.com {
 	reverse_proxy n8n:5678
 }
 
-shop.techmeout.it {
-	reverse_proxy storefront:8000
-}
-
 admin.techmeout.it {
 	reverse_proxy medusa:9000
+}
+
+monitor.openempower.com {
+	reverse_proxy grafana:3000
 }
