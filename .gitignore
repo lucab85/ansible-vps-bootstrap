@@ -2,6 +2,11 @@
 inventory.ini
 group_vars/vps.yml
 
+# Real app-stack secrets and generated env files live only on the VPS.
+compose/.env
+compose/medusa/apps/backend/.env
+compose/medusa/apps/storefront/.env.local
+
 # Ansible runtime files
 *.retry
 .ansible/
@@ -10,3 +15,8 @@ group_vars/vps.yml
 .DS_Store
 .idea/
 .vscode/
+
+# Local agent permissions and commands
+.claude/
+
+go.sh

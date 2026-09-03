@@ -48,8 +48,10 @@ ssh_disable_password_auth: true
 - Only ports 22, 80 and 443 are opened. Do not publish PostgreSQL or Redis ports.
 - Docker-published ports can bypass parts of UFW; bind internal services only to
   Docker networks and expose the reverse proxy on 80/443.
-- Application secrets, DNS, backups and the Medusa/n8n Compose stack are
-  intentionally outside this bootstrap.
+- The Medusa/n8n Docker Compose stack is deployed separately, by hand over SSH,
+  not by this playbook — see [`compose/README.md`](compose/README.md) for the
+  stack layout and deployment runbook. Application secrets, DNS and backups
+  remain outside this repo.
 - Reboot once after the first full system upgrade if `/var/run/reboot-required`
   exists.
 
