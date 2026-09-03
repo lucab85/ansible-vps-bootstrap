@@ -54,14 +54,22 @@ reload --config /etc/caddy/Caddyfile` (after editing the Caddyfile) or
 - `proxy/Caddyfile` — reverse proxy + automatic HTTPS for `n8n.openempower.com`,
   `admin.techmeout.it`, `monitor.openempower.com`. (`shop.techmeout.it` is
   Vercel's problem now, not in here.)
-- `monitoring/prometheus/prometheus.yml` — scrape configs for the 3 exporters.
+- `monitoring/prometheus/prometheus.yml` — scrape configs for node-exporter,
+  postgres-exporter, redis-exporter, and n8n's own `/metrics` endpoint
+  (`N8N_METRICS=true`, set directly on the `n8n` service — no separate
+  exporter needed, n8n exposes Prometheus format natively).
 - `monitoring/loki/loki-config.yml`, `monitoring/promtail/promtail-config.yml` —
   log aggregation; Promtail discovers containers via the Docker socket
   (`docker_sd_configs`), ships all container logs to Loki. 7-day retention.
 - `monitoring/grafana/provisioning/` — datasources (Prometheus + Loki) and a
-  starter dashboard (`vps-overview.json`: host CPU/mem/disk/network, Postgres
-  connections, Redis memory, disk free, a logs panel) provisioned
-  automatically on boot — no manual Grafana setup needed.
+  dashboard (`vps-overview.json`, rows: Host, Postgres, Redis, n8n, Disk &
+  logs) provisioned automatically on boot — no manual Grafana setup needed.
+  Host: CPU/mem/disk/load/swap/disk-I/O/network. Postgres: connections, DB
+  size, cache hit ratio. Redis: memory, ops/sec, connected clients. n8n:
+  active workflows, process memory, event loop lag, execution rate by status
+  (empty until workflows actually run — that's correct, not broken). Plus a
+  disk-free stat and a per-container error/fatal log-line rate panel (Loki)
+  so a noisy container stands out before you'd think to go looking.
 - `.env.example` — template for the real `/opt/apps/.env` on the VPS
   (secrets, never committed).
 - `configure-env.sh` — run **on the VPS**, reads `/opt/apps/.env` and writes
@@ -119,6 +127,14 @@ Prometheus, Loki, and all the exporters are only reachable on the internal
 
 ## Notes
 
+- Postgres's healthcheck is `pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}` —
+  without the explicit `-d`, `pg_isready` defaults the target database to the
+  *username* (`appuser`), which doesn't exist, so the healthcheck (which still
+  reports "healthy" — `pg_isready`'s success criterion is server
+  responsiveness, not a successful login) spams `FATAL: database "appuser"
+  does not exist` into the Postgres logs every 10s forever. Harmless but
+  noisy — especially once you have a log viewer that surfaces it front and
+  center.
 - `MEDUSA_WORKER_MODE` is left unset (defaults to `shared`) — a single Medusa
   instance handles both the API and background jobs. Not worth splitting into
   separate server/worker containers on a $5/mo VPS unless load grows.

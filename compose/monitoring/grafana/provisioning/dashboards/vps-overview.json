@@ -3,21 +3,19 @@
   "uid": "vps-overview",
   "timezone": "browser",
   "schemaVersion": 39,
-  "version": 2,
+  "version": 3,
   "refresh": "30s",
   "time": { "from": "now-6h", "to": "now" },
   "panels": [
+    { "id": 100, "type": "row", "title": "Host", "gridPos": { "h": 1, "w": 24, "x": 0, "y": 0 }, "collapsed": false },
     {
       "id": 1,
       "title": "Host CPU usage %",
       "type": "timeseries",
-      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 0 },
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 1 },
       "datasource": { "type": "prometheus", "uid": "Prometheus" },
       "targets": [
-        {
-          "expr": "100 - (avg by (instance) (rate(node_cpu_seconds_total{mode=\"idle\"}[5m])) * 100)",
-          "legendFormat": "cpu"
-        }
+        { "expr": "100 - (avg by (instance) (rate(node_cpu_seconds_total{mode=\"idle\"}[5m])) * 100)", "legendFormat": "cpu" }
       ],
       "fieldConfig": { "defaults": { "unit": "percent", "min": 0, "max": 100 }, "overrides": [] }
     },
@@ -25,13 +23,10 @@
       "id": 2,
       "title": "Host Memory used %",
       "type": "timeseries",
-      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 0 },
+      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 1 },
       "datasource": { "type": "prometheus", "uid": "Prometheus" },
       "targets": [
-        {
-          "expr": "(1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100",
-          "legendFormat": "memory"
-        }
+        { "expr": "(1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100", "legendFormat": "memory" }
       ],
       "fieldConfig": { "defaults": { "unit": "percent", "min": 0, "max": 100 }, "overrides": [] }
     },
@@ -39,87 +34,211 @@
       "id": 3,
       "title": "Host Disk used % (/)",
       "type": "timeseries",
-      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 0 },
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 1 },
       "datasource": { "type": "prometheus", "uid": "Prometheus" },
       "targets": [
-        {
-          "expr": "(1 - (node_filesystem_avail_bytes{mountpoint=\"/\"} / node_filesystem_size_bytes{mountpoint=\"/\"})) * 100",
-          "legendFormat": "disk"
-        }
+        { "expr": "(1 - (node_filesystem_avail_bytes{mountpoint=\"/\"} / node_filesystem_size_bytes{mountpoint=\"/\"})) * 100", "legendFormat": "disk" }
       ],
       "fieldConfig": { "defaults": { "unit": "percent", "min": 0, "max": 100 }, "overrides": [] }
     },
     {
-      "id": 6,
-      "title": "Postgres active connections",
+      "id": 11,
+      "title": "Load average",
       "type": "timeseries",
-      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 8 },
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 9 },
       "datasource": { "type": "prometheus", "uid": "Prometheus" },
       "targets": [
-        {
-          "expr": "sum(pg_stat_database_numbackends)",
-          "legendFormat": "connections"
-        }
+        { "expr": "node_load1", "legendFormat": "1m" },
+        { "expr": "node_load5", "legendFormat": "5m" },
+        { "expr": "node_load15", "legendFormat": "15m" }
       ],
       "fieldConfig": { "defaults": { "unit": "short" }, "overrides": [] }
     },
     {
-      "id": 7,
-      "title": "Redis memory used",
+      "id": 12,
+      "title": "Swap used %",
       "type": "timeseries",
-      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 8 },
+      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 9 },
       "datasource": { "type": "prometheus", "uid": "Prometheus" },
       "targets": [
-        {
-          "expr": "redis_memory_used_bytes",
-          "legendFormat": "used"
-        }
+        { "expr": "(1 - (node_memory_SwapFree_bytes / node_memory_SwapTotal_bytes)) * 100", "legendFormat": "swap" }
       ],
-      "fieldConfig": { "defaults": { "unit": "bytes" }, "overrides": [] }
+      "fieldConfig": { "defaults": { "unit": "percent", "min": 0, "max": 100 }, "overrides": [] }
     },
     {
-      "id": 8,
-      "title": "Disk free",
-      "type": "stat",
-      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 8 },
+      "id": 13,
+      "title": "Disk I/O",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 9 },
       "datasource": { "type": "prometheus", "uid": "Prometheus" },
       "targets": [
-        {
-          "expr": "node_filesystem_avail_bytes{mountpoint=\"/\"}",
-          "legendFormat": "free"
-        }
+        { "expr": "rate(node_disk_read_bytes_total{device=\"vda\"}[5m])", "legendFormat": "read" },
+        { "expr": "rate(node_disk_written_bytes_total{device=\"vda\"}[5m])", "legendFormat": "write" }
       ],
-      "fieldConfig": { "defaults": { "unit": "bytes" }, "overrides": [] }
+      "fieldConfig": { "defaults": { "unit": "Bps" }, "overrides": [] }
     },
     {
       "id": 10,
       "title": "Host network traffic",
       "type": "timeseries",
-      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 16 },
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 17 },
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "targets": [
+        { "expr": "rate(node_network_receive_bytes_total{device!=\"lo\"}[5m])", "legendFormat": "rx {{device}}" },
+        { "expr": "rate(node_network_transmit_bytes_total{device!=\"lo\"}[5m])", "legendFormat": "tx {{device}}" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "Bps" }, "overrides": [] }
+    },
+
+    { "id": 200, "type": "row", "title": "Postgres", "gridPos": { "h": 1, "w": 24, "x": 0, "y": 25 }, "collapsed": false },
+    {
+      "id": 6,
+      "title": "Active connections",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 26 },
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "targets": [
+        { "expr": "sum(pg_stat_database_numbackends)", "legendFormat": "connections" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "short" }, "overrides": [] }
+    },
+    {
+      "id": 21,
+      "title": "Database size",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 26 },
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "targets": [
+        { "expr": "pg_database_size_bytes{datname=~\"n8n|medusa\"}", "legendFormat": "{{datname}}" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "bytes" }, "overrides": [] }
+    },
+    {
+      "id": 22,
+      "title": "Cache hit ratio",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 26 },
       "datasource": { "type": "prometheus", "uid": "Prometheus" },
       "targets": [
         {
-          "expr": "rate(node_network_receive_bytes_total{device!=\"lo\"}[5m])",
-          "legendFormat": "rx {{device}}"
-        },
-        {
-          "expr": "rate(node_network_transmit_bytes_total{device!=\"lo\"}[5m])",
-          "legendFormat": "tx {{device}}"
+          "expr": "sum(rate(pg_stat_database_blks_hit[5m])) / (sum(rate(pg_stat_database_blks_hit[5m])) + sum(rate(pg_stat_database_blks_read[5m]))) * 100",
+          "legendFormat": "hit ratio"
         }
       ],
-      "fieldConfig": { "defaults": { "unit": "Bps" }, "overrides": [] }
+      "fieldConfig": { "defaults": { "unit": "percent", "min": 0, "max": 100 }, "overrides": [] }
+    },
+
+    { "id": 300, "type": "row", "title": "Redis", "gridPos": { "h": 1, "w": 24, "x": 0, "y": 34 }, "collapsed": false },
+    {
+      "id": 7,
+      "title": "Memory used",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 35 },
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "targets": [
+        { "expr": "redis_memory_used_bytes", "legendFormat": "used" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "bytes" }, "overrides": [] }
+    },
+    {
+      "id": 31,
+      "title": "Commands/sec",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 35 },
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "targets": [
+        { "expr": "rate(redis_commands_processed_total[5m])", "legendFormat": "ops/s" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "ops" }, "overrides": [] }
+    },
+    {
+      "id": 32,
+      "title": "Connected clients",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 35 },
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "targets": [
+        { "expr": "redis_connected_clients", "legendFormat": "clients" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "short" }, "overrides": [] }
+    },
+
+    { "id": 400, "type": "row", "title": "n8n", "gridPos": { "h": 1, "w": 24, "x": 0, "y": 43 }, "collapsed": false },
+    {
+      "id": 41,
+      "title": "Active workflows",
+      "type": "stat",
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 44 },
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "targets": [
+        { "expr": "n8n_active_workflow_count", "legendFormat": "active" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "short" }, "overrides": [] }
+    },
+    {
+      "id": 42,
+      "title": "Process memory (RSS)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 44 },
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "targets": [
+        { "expr": "n8n_process_resident_memory_bytes", "legendFormat": "rss" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "bytes" }, "overrides": [] }
+    },
+    {
+      "id": 43,
+      "title": "Event loop lag",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 44 },
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "targets": [
+        { "expr": "n8n_nodejs_eventloop_lag_seconds", "legendFormat": "lag" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "s" }, "overrides": [] }
+    },
+    {
+      "id": 44,
+      "title": "Workflow executions/min by status",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 52 },
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "targets": [
+        { "expr": "sum by (status) (rate(n8n_workflow_execution_duration_seconds_count[5m])) * 60", "legendFormat": "{{status}}" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "short" }, "overrides": [] }
+    },
+
+    { "id": 500, "type": "row", "title": "Disk & logs", "gridPos": { "h": 1, "w": 24, "x": 0, "y": 60 }, "collapsed": false },
+    {
+      "id": 8,
+      "title": "Disk free",
+      "type": "stat",
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 61 },
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "targets": [
+        { "expr": "node_filesystem_avail_bytes{mountpoint=\"/\"}", "legendFormat": "free" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "bytes" }, "overrides": [] }
+    },
+    {
+      "id": 51,
+      "title": "Error/fatal log lines per minute (all containers)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 16, "x": 8, "y": 61 },
+      "datasource": { "type": "loki", "uid": "Loki" },
+      "targets": [
+        { "expr": "sum by (container) (count_over_time({container=~\"apps-.+\"} |~ \"(?i)error|fatal|crit\" [1m]))", "legendFormat": "{{container}}" }
+      ]
     },
     {
       "id": 9,
       "title": "Container logs",
       "type": "logs",
-      "gridPos": { "h": 10, "w": 24, "x": 0, "y": 24 },
+      "gridPos": { "h": 10, "w": 24, "x": 0, "y": 69 },
       "datasource": { "type": "loki", "uid": "Loki" },
       "targets": [
-        {
-          "expr": "{container=~\".+\"}",
-          "refId": "A"
-        }
+        { "expr": "{container=~\".+\"}", "refId": "A" }
       ],
       "options": { "showTime": true, "wrapLogMessage": true, "sortOrder": "Descending" }
     }
