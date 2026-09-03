@@ -6,6 +6,11 @@ directory is the version-controlled mirror of the infra config that's
 actually deployed; it does **not** contain application source code (see
 "Where the code lives" below).
 
+**Adding another store?** See [`NEW_TENANT.md`](NEW_TENANT.md) for the full
+step-by-step recipe. Every generated password/secret for every service in
+this stack is recorded in `credentials.txt` at the repo root (gitignored —
+not in this file, not in git history, local reference only).
+
 ## Domains
 
 | Service                          | Domain                            | Hosted on |
@@ -106,7 +111,7 @@ doesn't resolve yet.
 
 ## Deploying the backend
 
-Normal path: push to `techmeout-medusa`'s `main` branch — GitHub Actions
+Normal path: push to `techmeout-it/backend`'s `main` branch — GitHub Actions
 handles the rest (rsync + `docker compose build medusa && docker compose up
 -d medusa`).
 

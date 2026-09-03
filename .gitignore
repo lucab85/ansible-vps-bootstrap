@@ -4,8 +4,9 @@ group_vars/vps.yml
 
 # Real app-stack secrets and generated env files live only on the VPS.
 compose/.env
-compose/medusa/apps/backend/.env
-compose/medusa/apps/storefront/.env.local
+
+# Consolidated local record of every generated password/secret.
+credentials.txt
 
 # Ansible runtime files
 *.retry
