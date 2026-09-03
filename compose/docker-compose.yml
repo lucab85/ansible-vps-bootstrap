@@ -61,6 +61,9 @@ services:
       N8N_PORT: 5678
       WEBHOOK_URL: ${WEBHOOK_URL}
       GENERIC_TIMEZONE: ${GENERIC_TIMEZONE}
+      N8N_METRICS: "true"
+      N8N_METRICS_INCLUDE_DEFAULT_METRICS: "true"
+      N8N_METRICS_INCLUDE_QUEUE_METRICS: "true"
     volumes:
       - n8n_data:/home/node/.n8n
     networks: [apps]
