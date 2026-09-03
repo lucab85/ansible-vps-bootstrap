@@ -10,10 +10,10 @@ monitor.openempower.com {
 	reverse_proxy grafana:3000
 }
 
-puntofeste.techmeout.it {
+admin-puntofeste.techmeout.it {
 	reverse_proxy puntofeste-backend:9000
 }
 
-smoothclothingbrand.techmeout.it {
+admin-smoothclothingbrand.techmeout.it {
 	reverse_proxy smoothclothingbrand-backend:9000
 }
