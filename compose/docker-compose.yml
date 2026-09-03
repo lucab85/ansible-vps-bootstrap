@@ -44,6 +44,8 @@ services:
       - n8n
       - medusa
       - grafana
+      - puntofeste-backend
+      - smoothclothingbrand-backend
 
   n8n:
     image: n8nio/n8n:latest
@@ -78,6 +80,54 @@ services:
     restart: unless-stopped
     env_file:
       - ./medusa/.env
+    networks: [apps]
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  puntofeste-backend:
+    image: node:20
+    restart: unless-stopped
+    working_dir: /app
+    volumes:
+      - /opt/apps/puntofeste/apps/backend:/app
+    command: sh -c "npm install && npx medusa db:migrate && npx medusa db:sync-links && npx medusa develop"
+    environment:
+      NODE_ENV: development
+      DATABASE_URL: "postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/puntofeste"
+      REDIS_URL: "redis://redis:6379/1"
+      STORE_CORS: ${PUNTOFESTE_STOREFRONT_URL}
+      ADMIN_CORS: ${PUNTOFESTE_BACKEND_URL}
+      AUTH_CORS: "${PUNTOFESTE_STOREFRONT_URL},${PUNTOFESTE_BACKEND_URL}"
+      JWT_SECRET: ${PUNTOFESTE_JWT_SECRET}
+      COOKIE_SECRET: ${PUNTOFESTE_COOKIE_SECRET}
+      MEDUSA_BACKEND_URL: ${PUNTOFESTE_BACKEND_URL}
+    networks: [apps]
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  smoothclothingbrand-backend:
+    image: node:20
+    restart: unless-stopped
+    working_dir: /app
+    volumes:
+      - /opt/apps/smoothclothingbrand/apps/backend:/app
+    command: sh -c "npm install && npx medusa db:migrate && npx medusa db:sync-links && npx medusa develop"
+    environment:
+      NODE_ENV: development
+      DATABASE_URL: "postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/smoothclothingbrand"
+      REDIS_URL: "redis://redis:6379/2"
+      STORE_CORS: ${SMOOTHCLOTHINGBRAND_STOREFRONT_URL}
+      ADMIN_CORS: ${SMOOTHCLOTHINGBRAND_BACKEND_URL}
+      AUTH_CORS: "${SMOOTHCLOTHINGBRAND_STOREFRONT_URL},${SMOOTHCLOTHINGBRAND_BACKEND_URL}"
+      JWT_SECRET: ${SMOOTHCLOTHINGBRAND_JWT_SECRET}
+      COOKIE_SECRET: ${SMOOTHCLOTHINGBRAND_COOKIE_SECRET}
+      MEDUSA_BACKEND_URL: ${SMOOTHCLOTHINGBRAND_BACKEND_URL}
     networks: [apps]
     depends_on:
       postgres:

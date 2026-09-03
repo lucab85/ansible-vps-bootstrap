@@ -9,3 +9,11 @@ admin.techmeout.it {
 monitor.openempower.com {
 	reverse_proxy grafana:3000
 }
+
+puntofeste.techmeout.it {
+	reverse_proxy puntofeste-backend:9000
+}
+
+smoothclothingbrand.techmeout.it {
+	reverse_proxy smoothclothingbrand-backend:9000
+}
