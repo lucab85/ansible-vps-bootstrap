@@ -14,10 +14,16 @@ actually deployed; it does **not** contain application source code (see
 | Medusa backend/admin (techmeout)   | `admin.techmeout.it`               | VPS |
 | Medusa storefront (techmeout)      | `shop.techmeout.it`                | Vercel |
 | Grafana                            | `monitor.openempower.com`          | VPS |
-| Medusa backend (puntofeste)        | `puntofeste.techmeout.it`          | VPS |
-| Medusa storefront (puntofeste)     | `shop.puntofeste.com`              | Vercel |
-| Medusa backend (smoothclothingbrand) | `smoothclothingbrand.techmeout.it` | VPS |
-| Medusa storefront (smoothclothingbrand) | `shop.smoothclothingbrand.com`  | Vercel |
+| Medusa backend (puntofeste)        | `admin-puntofeste.techmeout.it`    | VPS |
+| Medusa storefront (puntofeste)     | `puntofeste.techmeout.it`          | Vercel |
+| Medusa backend (smoothclothingbrand) | `admin-smoothclothingbrand.techmeout.it` | VPS |
+| Medusa storefront (smoothclothingbrand) | `smoothclothingbrand.techmeout.it` | Vercel |
+
+`puntofeste`/`smoothclothingbrand` are on **dev-phase URLs** (subdomains of
+`techmeout.it`, both backend and storefront) rather than their real brand
+domains (`shop.puntofeste.com`, `shop.smoothclothingbrand.com`) — deliberate,
+per the user: prove the setup works here first, move to the final domains
+once it's ready.
 
 DNS A records must point at the VPS IP for every VPS-hosted domain above
 before Caddy can issue Let's Encrypt certificates — it retries automatically
@@ -141,23 +147,21 @@ Medusa stores added later, deliberately run differently from `techmeout`:
   (`redis://redis:6379/1` for puntofeste, `/2` for smoothclothingbrand — `0`
   stays techmeout's default) rather than three separate Redis containers.
   Much lighter on a 4 GB box than giving every store its own database engine.
-- **Backend on a `techmeout.it` subdomain, storefront on the brand's own
-  domain, hosted separately**: `puntofeste.techmeout.it` /
-  `smoothclothingbrand.techmeout.it` (VPS, Caddy) for the Admin/API, but
-  `shop.puntofeste.com` / `shop.smoothclothingbrand.com` (Vercel) for the
-  storefront — same backend-stays-on-VPS/storefront-goes-to-Vercel split as
-  `techmeout`, just with the backend's own address living under the shared
-  ops domain instead of the brand's domain (the brand domains are only used
-  for the customer-facing shop).
-- **Repos exist and are pushed; Vercel projects are linked and configured**
-  (env vars, publishable key from the auto-seeded demo data) but the first
-  production deploy on each **fails until DNS for the corresponding
-  `*.techmeout.it` backend is live** — same prerender-fetches-the-backend
-  constraint documented above for `techmeout-it/frontend`, and Vercel refuses
-  to attach a custom domain (`shop.puntofeste.com` etc.) to a project whose
-  latest production deployment errored, so that's blocked too until then.
-  Once DNS is set: `cd` into the frontend repo, `vercel --prod` to get a
-  successful deploy, then `vercel domains add shop.<brand>.com`.
+- **Dev-phase domains, both under `techmeout.it`**: backend at
+  `admin-puntofeste.techmeout.it` / `admin-smoothclothingbrand.techmeout.it`
+  (VPS, Caddy), storefront at `puntofeste.techmeout.it` /
+  `smoothclothingbrand.techmeout.it` (Vercel) — deliberately *not* the real
+  brand domains (`shop.puntofeste.com`, `shop.smoothclothingbrand.com`) yet.
+  Per the user: prove the setup end-to-end on throwaway subdomains first,
+  cut over to the real domains once it's ready. Same
+  backend-stays-on-VPS/storefront-goes-to-Vercel split as `techmeout`
+  either way.
+- **Live end-to-end** as of the last deploy: both backends reachable over
+  HTTPS, both storefronts deployed to Vercel and reachable at their
+  `*.techmeout.it` custom domains. Moving to the final brand domains later is
+  just: point `shop.<brand>.com` DNS at Vercel, `vercel domains add
+  shop.<brand>.com`, update `NEXT_PUBLIC_BASE_URL`/`STORE_CORS`/`AUTH_CORS`
+  to match, redeploy.
 
 ## Monitoring stack
 
