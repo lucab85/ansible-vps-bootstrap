@@ -8,42 +8,64 @@ actually deployed; it does **not** contain application source code (see
 
 ## Domains
 
-| Service              | Domain                       | Hosted on |
-|-----------------------|-------------------------------|-----------|
-| n8n                   | `n8n.openempower.com`        | VPS |
-| Medusa backend/admin  | `admin.techmeout.it`         | VPS |
-| Medusa storefront     | `shop.techmeout.it`          | Vercel (not this VPS) |
-| Grafana               | `monitor.openempower.com`    | VPS |
+| Service                          | Domain                            | Hosted on |
+|-----------------------------------|-------------------------------------|-----------|
+| n8n                                | `n8n.openempower.com`              | VPS |
+| Medusa backend/admin (techmeout)   | `admin.techmeout.it`               | VPS |
+| Medusa storefront (techmeout)      | `shop.techmeout.it`                | Vercel |
+| Grafana                            | `monitor.openempower.com`          | VPS |
+| Medusa backend (puntofeste)        | `puntofeste.techmeout.it`          | VPS |
+| Medusa storefront (puntofeste)     | `shop.puntofeste.com`              | Vercel |
+| Medusa backend (smoothclothingbrand) | `smoothclothingbrand.techmeout.it` | VPS |
+| Medusa storefront (smoothclothingbrand) | `shop.smoothclothingbrand.com`  | Vercel |
 
-DNS A records must point at the VPS IP (except the storefront, which points
-at Vercel) before Caddy can issue Let's Encrypt certificates — it retries
-automatically once they resolve, but if it already exhausted its retry
-attempts it backs off for up to 2 hours; `docker exec apps-caddy-1 caddy
-reload --config /etc/caddy/Caddyfile` (after editing the Caddyfile) or
-`docker restart apps-caddy-1` forces an immediate retry instead of waiting.
+DNS A records must point at the VPS IP for every VPS-hosted domain above
+before Caddy can issue Let's Encrypt certificates — it retries automatically
+once they resolve, but if it already exhausted its retry attempts it backs
+off for up to 2 hours; `docker exec apps-caddy-1 caddy reload --config
+/etc/caddy/Caddyfile` (after editing the Caddyfile) or `docker restart
+apps-caddy-1` forces an immediate retry instead of waiting. The Vercel-hosted
+storefronts also can't get a working production deploy until their backend's
+DNS resolves — Next.js prerenders product pages at build time by fetching
+from `NEXT_PUBLIC_MEDUSA_BACKEND_URL`, which fails outright if that host
+doesn't resolve yet.
 
 ## Where the code lives
 
-- **Backend** (Medusa v2 API + Admin): [`techmeout-medusa`](https://github.com/lucab85/techmeout-medusa),
-  a separate private repo. GitHub Actions (`.github/workflows/deploy.yml` in
-  that repo) rsyncs it to `/opt/apps/medusa` on the VPS and rebuilds on every
-  push to `main`, using a dedicated SSH deploy key (not the personal one used
-  for manual access) stored as repo secrets (`VPS_SSH_KEY`, `VPS_HOST`,
-  `VPS_USER`).
-- **Storefront** (Next.js): [`techmeout-storefront`](https://github.com/lucab85/techmeout-storefront),
-  deployed on Vercel (project `openempower/techmeout-storefront`), connected
-  to the GitHub repo for auto-deploy on push. Not on the VPS at all — this is
-  the one thing in the original architecture that moved off-box.
+- **techmeout (production-style deploy)**:
+  - Backend (Medusa v2 API + Admin): [`techmeout-it/backend`](https://github.com/techmeout-it/backend).
+    GitHub Actions (`.github/workflows/deploy.yml` in that repo) rsyncs it to
+    `/opt/apps/medusa` on the VPS and rebuilds on every push to `main`, using
+    a dedicated SSH deploy key (not the personal one used for manual access)
+    stored as repo secrets (`VPS_SSH_KEY`, `VPS_HOST`, `VPS_USER`). Built with
+    a production Dockerfile (`npm run build` → `.medusa/server` → `medusa
+    start`).
+  - Storefront (Next.js): [`techmeout-it/frontend`](https://github.com/techmeout-it/frontend),
+    deployed on Vercel (project `openempower/techmeout-storefront`),
+    connected to the GitHub repo for auto-deploy on push. Not on the VPS at
+    all.
+- **puntofeste and smoothclothingbrand (experimentation, dev-mode)** — see
+  "Multi-tenant stores" below for the full rationale:
+  - Backends: [`techmeout-it/puntofeste-backend`](https://github.com/techmeout-it/puntofeste-backend),
+    [`techmeout-it/smoothclothingbrand-backend`](https://github.com/techmeout-it/smoothclothingbrand-backend).
+    Run directly on the VPS via `medusa develop` (no build step, no CI/CD,
+    no Dockerfile — plain `node:20` image bind-mounting the repo directory).
+  - Storefronts: [`techmeout-it/puntofeste-frontend`](https://github.com/techmeout-it/puntofeste-frontend),
+    [`techmeout-it/smoothclothingbrand-frontend`](https://github.com/techmeout-it/smoothclothingbrand-frontend),
+    each on their own Vercel project, same pattern as techmeout's storefront.
 - **This repo's `compose/`** only owns the infra layer: Postgres, Redis,
-  Caddy, n8n, how the backend image gets built from the checked-out
-  `techmeout-medusa` repo, and the monitoring stack below.
+  Caddy, n8n, how the `techmeout` backend image gets built, the dev-mode
+  services for the other two stores, and the monitoring stack below.
 
 ## Layout
 
-- `docker-compose.yml` — 12 services. App layer: `caddy`, `postgres`, `redis`,
-  `n8n`, `medusa`. Monitoring layer: `node-exporter`, `postgres-exporter`,
-  `redis-exporter`, `prometheus`, `loki`, `promtail`, `grafana`. One Postgres
-  instance with databases `n8n` and `medusa`, one shared Redis.
+- `docker-compose.yml` — 14 services. App layer: `caddy`, `postgres`, `redis`,
+  `n8n`, `medusa` (techmeout), `puntofeste-backend`,
+  `smoothclothingbrand-backend`. Monitoring layer: `node-exporter`,
+  `postgres-exporter`, `redis-exporter`, `prometheus`, `loki`, `promtail`,
+  `grafana`. One Postgres instance with a database per store (`n8n`,
+  `medusa`, `puntofeste`, `smoothclothingbrand`), one shared Redis (isolated
+  per store by logical DB index — see below).
 - `postgres/init/01-databases.sh` — creates the `n8n` and `medusa` databases
   on first boot. `02-monitoring-user.sh` — creates a read-only
   `postgres_exporter` role (`pg_monitor`) for Prometheus to scrape with,
@@ -51,9 +73,10 @@ reload --config /etc/caddy/Caddyfile` (after editing the Caddyfile) or
   against a **fresh** Postgres data dir (`docker-entrypoint-initdb.d`
   semantics) — against an already-initialized volume, run the SQL by hand
   once instead (see git history of this file for the exact commands used).
-- `proxy/Caddyfile` — reverse proxy + automatic HTTPS for `n8n.openempower.com`,
-  `admin.techmeout.it`, `monitor.openempower.com`. (`shop.techmeout.it` is
-  Vercel's problem now, not in here.)
+  `puntofeste`/`smoothclothingbrand` databases were likewise created by hand
+  (`CREATE DATABASE`) since they were added after the volume already existed.
+- `proxy/Caddyfile` — reverse proxy + automatic HTTPS for every VPS-hosted
+  domain in the table above. The storefronts (Vercel) aren't in here.
 - `monitoring/prometheus/prometheus.yml` — scrape configs for node-exporter,
   postgres-exporter, redis-exporter, and n8n's own `/metrics` endpoint
   (`N8N_METRICS=true`, set directly on the `n8n` service — no separate
@@ -93,6 +116,48 @@ hangs until Medusa's own timeout kills it).
 The backend's `CMD` runs `npx medusa db:migrate && npx medusa db:sync-links
 && npm run start` — not the `predeploy` script some Medusa docs mention,
 which doesn't exist in the generated `.medusa/server/package.json`.
+
+## Multi-tenant stores (puntofeste, smoothclothingbrand)
+
+This VPS is explicitly an experimentation box (the user's framing, not a
+euphemism) — `puntofeste` and `smoothclothingbrand` are two more independent
+Medusa stores added later, deliberately run differently from `techmeout`:
+
+- **Dev mode, not production build**: each backend runs `npx medusa develop`
+  directly — no Dockerfile, no `medusa build`, no CI/CD. The compose service
+  is a plain `node:20` image with the store's repo directory bind-mounted at
+  `/app` (e.g. `/opt/apps/puntofeste/apps/backend`), running `npm install &&
+  medusa db:migrate && medusa db:sync-links && medusa develop` on start. A
+  `git pull` in that directory + Medusa's own file-watcher is the entire
+  deploy loop — no rebuild, no restart even, for most changes. Trades
+  production-grade robustness for near-zero iteration friction, which is the
+  right trade for "try this out" work. `medusa-config.ts` still needs the
+  same `databaseDriverOptions.connection.ssl: false` fix as `techmeout` — that
+  bug is about MikroORM vs this Postgres server, unrelated to dev vs. prod
+  mode.
+- **Shared Postgres + Redis, not dedicated instances**: each store gets its
+  own Postgres database (`puntofeste`, `smoothclothingbrand`) on the existing
+  shared `postgres` container, and is isolated in Redis via logical DB index
+  (`redis://redis:6379/1` for puntofeste, `/2` for smoothclothingbrand — `0`
+  stays techmeout's default) rather than three separate Redis containers.
+  Much lighter on a 4 GB box than giving every store its own database engine.
+- **Backend on a `techmeout.it` subdomain, storefront on the brand's own
+  domain, hosted separately**: `puntofeste.techmeout.it` /
+  `smoothclothingbrand.techmeout.it` (VPS, Caddy) for the Admin/API, but
+  `shop.puntofeste.com` / `shop.smoothclothingbrand.com` (Vercel) for the
+  storefront — same backend-stays-on-VPS/storefront-goes-to-Vercel split as
+  `techmeout`, just with the backend's own address living under the shared
+  ops domain instead of the brand's domain (the brand domains are only used
+  for the customer-facing shop).
+- **Repos exist and are pushed; Vercel projects are linked and configured**
+  (env vars, publishable key from the auto-seeded demo data) but the first
+  production deploy on each **fails until DNS for the corresponding
+  `*.techmeout.it` backend is live** — same prerender-fetches-the-backend
+  constraint documented above for `techmeout-it/frontend`, and Vercel refuses
+  to attach a custom domain (`shop.puntofeste.com` etc.) to a project whose
+  latest production deployment errored, so that's blocked too until then.
+  Once DNS is set: `cd` into the frontend repo, `vercel --prod` to get a
+  successful deploy, then `vercel domains add shop.<brand>.com`.
 
 ## Monitoring stack
 
