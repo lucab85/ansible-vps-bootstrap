@@ -199,7 +199,17 @@ Medusa stores added later, deliberately run differently from `techmeout`:
   `__MEDUSA_ADMIN_ADDITIONAL_ALLOWED_HOSTS` env var (comma-separated
   hostnames, no scheme) on the `*-backend` compose service, which
   `admin-bundler` reads via `getAllowedHosts()` and feeds straight into
-  Vite's `server.allowedHosts`.
+  Vite's `server.allowedHosts`. Separately, `@medusajs/admin-vite-plugin@2.20.1`
+  has its own Vite-7 incompatibility that also blanks the admin dashboard:
+  its generated i18n virtual module imports the project's admin i18n file by
+  absolute path, but Vite resolves it against `.medusa/client` (the admin's
+  build root, not the project root) and fails with "Failed to resolve
+  import /src/admin/i18n/index.ts" on every request. Fixed per-store in
+  each backend repo's own `medusa-config.ts` (not here — this repo's
+  `compose/` only owns infra, per "Where the code lives" above) via the
+  `admin.vite` config hook, aliasing the broken specifier back to its real
+  path. See `techmeout-it/smoothclothingbrand-backend` and
+  `techmeout-it/puntofeste-backend`, both `medusa-config.ts`, for the fix.
 - **Shared Postgres + Redis, not dedicated instances**: each store gets its
   own Postgres database (`puntofeste`, `smoothclothingbrand`) on the existing
   shared `postgres` container, and is isolated in Redis via logical DB index
