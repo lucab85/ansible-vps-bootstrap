@@ -189,7 +189,17 @@ Medusa stores added later, deliberately run differently from `techmeout`:
   right trade for "try this out" work. `medusa-config.ts` still needs the
   same `databaseDriverOptions.connection.ssl: false` fix as `techmeout` — that
   bug is about MikroORM vs this Postgres server, unrelated to dev vs. prod
-  mode.
+  mode. Dev mode also means the admin dashboard is served by Vite's dev
+  server (not a static build), which as of Vite 6/7 blocks requests whose
+  `Host` header isn't localhost/an IP/an explicitly allowed host — hitting
+  `admin-<store>.techmeout.it/app` through Caddy fails with "Blocked
+  request... add ... to `server.allowedHosts`" otherwise. There's no
+  `vite.config.js` in these repos to edit (the dev server is assembled
+  internally by `@medusajs/admin-bundler`); the supported fix is the
+  `__MEDUSA_ADMIN_ADDITIONAL_ALLOWED_HOSTS` env var (comma-separated
+  hostnames, no scheme) on the `*-backend` compose service, which
+  `admin-bundler` reads via `getAllowedHosts()` and feeds straight into
+  Vite's `server.allowedHosts`.
 - **Shared Postgres + Redis, not dedicated instances**: each store gets its
   own Postgres database (`puntofeste`, `smoothclothingbrand`) on the existing
   shared `postgres` container, and is isolated in Redis via logical DB index

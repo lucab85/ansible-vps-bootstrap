@@ -105,6 +105,7 @@ services:
       JWT_SECRET: ${PUNTOFESTE_JWT_SECRET}
       COOKIE_SECRET: ${PUNTOFESTE_COOKIE_SECRET}
       MEDUSA_BACKEND_URL: ${PUNTOFESTE_BACKEND_URL}
+      __MEDUSA_ADMIN_ADDITIONAL_ALLOWED_HOSTS: admin-puntofeste.techmeout.it
     networks: [apps]
     depends_on:
       postgres:
@@ -129,6 +130,7 @@ services:
       JWT_SECRET: ${SMOOTHCLOTHINGBRAND_JWT_SECRET}
       COOKIE_SECRET: ${SMOOTHCLOTHINGBRAND_COOKIE_SECRET}
       MEDUSA_BACKEND_URL: ${SMOOTHCLOTHINGBRAND_BACKEND_URL}
+      __MEDUSA_ADMIN_ADDITIONAL_ALLOWED_HOSTS: admin-smoothclothingbrand.techmeout.it
     networks: [apps]
     depends_on:
       postgres:
