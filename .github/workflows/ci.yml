@@ -1,0 +1,58 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# This repo has no automated deploy step (site.yml is applied by hand
+# against the real VPS, and compose/ is a version-controlled mirror of
+# what's deployed there over SSH — see both README.md and
+# compose/README.md). This workflow validates the Ansible playbook and
+# the docker-compose config without needing real inventory/secrets.
+jobs:
+  validate:
+    name: Lint & syntax-check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install Ansible tooling
+        run: pip install ansible ansible-lint yamllint
+
+      - name: Install required collections
+        run: ansible-galaxy collection install -r requirements.yml
+
+      - name: yamllint
+        run: yamllint .
+
+      - name: ansible-lint
+        run: ansible-lint site.yml
+
+      - name: Playbook syntax check
+        # site.yml's own real inventory/group_vars are gitignored (they'd
+        # contain the VPS's real IP and admin key) — a throwaway dummy
+        # inventory is enough for a syntax check, which doesn't touch any
+        # real host.
+        run: |
+          echo "[vps]
+          dummy ansible_host=127.0.0.1" > /tmp/ci-inventory.ini
+          ansible-playbook -i /tmp/ci-inventory.ini --syntax-check site.yml
+
+      - name: Validate docker-compose config
+        # Real secrets live only in compose/.env on the VPS (gitignored).
+        # compose/medusa/ isn't in this repo at all — it's rsynced onto
+        # the VPS by techmeout-it/backend's own deploy workflow — so the
+        # medusa service's build context/env_file need throwaway stubs
+        # too. None of this checks interpolated values are correct, only
+        # that the compose file itself parses and is internally
+        # consistent.
+        run: |
+          touch compose/.env
+          mkdir -p compose/medusa
+          touch compose/medusa/.env compose/medusa/Dockerfile
+          docker compose -f compose/docker-compose.yml --env-file compose/.env config > /dev/null

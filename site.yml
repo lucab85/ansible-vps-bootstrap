@@ -97,6 +97,7 @@
     - name: Format swap file
       ansible.builtin.command: mkswap /swapfile
       when: swap_type.stdout != 'swap'
+      changed_when: true
 
     - name: Enable swap file
       ansible.builtin.command: swapon /swapfile
@@ -135,12 +136,13 @@
         architectures: ["{{ ansible_facts['architecture'] | replace('x86_64', 'amd64') | replace('aarch64', 'arm64') }}"]
         signed_by: /etc/apt/keyrings/docker.asc
         state: present
-      register: docker_repo
+      notify: Refresh APT cache
 
-    - name: Refresh APT cache after adding Docker repository
-      ansible.builtin.apt:
-        update_cache: true
-      when: docker_repo.changed
+    # The next task installs docker-ce from the repo just added above, so
+    # the cache refresh can't wait until the play's normal end-of-run
+    # handler flush — it has to happen right here.
+    - name: Flush handlers so the APT cache is current before installing Docker
+      ansible.builtin.meta: flush_handlers
 
     - name: Install Docker Engine and Compose
       ansible.builtin.apt:
@@ -221,3 +223,6 @@
         name: docker
         state: restarted
 
+    - name: Refresh APT cache
+      ansible.builtin.apt:
+        update_cache: true
