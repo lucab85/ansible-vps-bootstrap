@@ -3,7 +3,7 @@
   "uid": "vps-overview",
   "timezone": "browser",
   "schemaVersion": 39,
-  "version": 3,
+  "version": 5,
   "refresh": "30s",
   "time": { "from": "now-6h", "to": "now" },
   "panels": [
@@ -241,6 +241,342 @@
         { "expr": "{container=~\".+\"}", "refId": "A" }
       ],
       "options": { "showTime": true, "wrapLogMessage": true, "sortOrder": "Descending" }
+    },
+
+    { "id": 600, "type": "row", "title": "Caddy (edge) — RED", "gridPos": { "h": 1, "w": 24, "x": 0, "y": 80 }, "collapsed": false },
+    {
+      "id": 61,
+      "title": "Request rate",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 81 },
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "targets": [
+        { "expr": "sum(rate(caddy_http_requests_total[5m]))", "legendFormat": "req/s" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "reqps" }, "overrides": [] }
+    },
+    {
+      "id": 62,
+      "title": "Error rate % (5xx)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 81 },
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "targets": [
+        {
+          "expr": "100 * sum(rate(caddy_http_request_duration_seconds_count{code=~\"5..\"}[5m])) / sum(rate(caddy_http_request_duration_seconds_count[5m]))",
+          "legendFormat": "5xx %"
+        }
+      ],
+      "fieldConfig": { "defaults": { "unit": "percent", "min": 0 }, "overrides": [] }
+    },
+    {
+      "id": 63,
+      "title": "Request duration (p50/p95/p99)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 81 },
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "targets": [
+        { "expr": "histogram_quantile(0.50, sum(rate(caddy_http_request_duration_seconds_bucket[5m])) by (le))", "legendFormat": "p50" },
+        { "expr": "histogram_quantile(0.95, sum(rate(caddy_http_request_duration_seconds_bucket[5m])) by (le))", "legendFormat": "p95" },
+        { "expr": "histogram_quantile(0.99, sum(rate(caddy_http_request_duration_seconds_bucket[5m])) by (le))", "legendFormat": "p99" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "s" }, "overrides": [] }
+    },
+    {
+      "id": 64,
+      "title": "Requests by status code",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 89 },
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "targets": [
+        { "expr": "sum by (code) (rate(caddy_http_request_duration_seconds_count[5m]))", "legendFormat": "{{code}}" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "reqps" }, "overrides": [] }
+    },
+
+    { "id": 700, "type": "row", "title": "Postgres — extra", "gridPos": { "h": 1, "w": 24, "x": 0, "y": 97 }, "collapsed": false },
+    {
+      "id": 71,
+      "title": "Connections used vs max",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 98 },
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "targets": [
+        { "expr": "sum(pg_stat_database_numbackends)", "legendFormat": "used" },
+        { "expr": "pg_settings_max_connections", "legendFormat": "max" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "short" }, "overrides": [] }
+    },
+    {
+      "id": 72,
+      "title": "Deadlocks & rollbacks /min",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 98 },
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "targets": [
+        { "expr": "sum(rate(pg_stat_database_deadlocks[5m])) * 60", "legendFormat": "deadlocks" },
+        { "expr": "sum(rate(pg_stat_database_xact_rollback[5m])) * 60", "legendFormat": "rollbacks" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "short" }, "overrides": [] }
+    },
+    {
+      "id": 73,
+      "title": "Temp file spill rate (disk-based sorts)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 98 },
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "targets": [
+        { "expr": "sum(rate(pg_stat_database_temp_bytes[5m]))", "legendFormat": "temp bytes/s" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "Bps" }, "overrides": [] }
+    },
+
+    { "id": 800, "type": "row", "title": "Redis — extra", "gridPos": { "h": 1, "w": 24, "x": 0, "y": 106 }, "collapsed": false },
+    {
+      "id": 81,
+      "title": "Rejected connections /min",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 107 },
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "targets": [
+        { "expr": "sum(rate(redis_rejected_connections_total[5m])) * 60", "legendFormat": "rejected/min" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "short" }, "overrides": [] }
+    },
+    {
+      "id": 82,
+      "title": "Evicted & expired keys /min",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 107 },
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "targets": [
+        { "expr": "sum(rate(redis_evicted_keys_total[5m])) * 60", "legendFormat": "evicted/min" },
+        { "expr": "sum(rate(redis_expired_keys_total[5m])) * 60", "legendFormat": "expired/min" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "short" }, "overrides": [] }
+    },
+    {
+      "id": 83,
+      "title": "Time since last RDB save",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 107 },
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "targets": [
+        { "expr": "time() - redis_rdb_last_save_timestamp_seconds", "legendFormat": "age" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "s" }, "overrides": [] }
+    },
+
+    { "id": 900, "type": "row", "title": "Host — extra (USE)", "gridPos": { "h": 1, "w": 24, "x": 0, "y": 115 }, "collapsed": false },
+    {
+      "id": 91,
+      "title": "Filesystem inode usage % (/)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 116 },
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "targets": [
+        {
+          "expr": "(1 - (node_filesystem_files_free{mountpoint=\"/\"} / node_filesystem_files{mountpoint=\"/\"})) * 100",
+          "legendFormat": "inodes used"
+        }
+      ],
+      "fieldConfig": { "defaults": { "unit": "percent", "min": 0, "max": 100 }, "overrides": [] }
+    },
+    {
+      "id": 92,
+      "title": "Network errors & drops /s",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 116 },
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "targets": [
+        {
+          "expr": "sum(rate(node_network_receive_errs_total{device!=\"lo\"}[5m])) + sum(rate(node_network_transmit_errs_total{device!=\"lo\"}[5m]))",
+          "legendFormat": "errors"
+        },
+        {
+          "expr": "sum(rate(node_network_receive_drop_total{device!=\"lo\"}[5m])) + sum(rate(node_network_transmit_drop_total{device!=\"lo\"}[5m]))",
+          "legendFormat": "drops"
+        }
+      ],
+      "fieldConfig": { "defaults": { "unit": "short" }, "overrides": [] }
+    },
+    {
+      "id": 93,
+      "title": "TCP retransmits /s & OOM kills (cumulative)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 116 },
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "targets": [
+        { "expr": "rate(node_netstat_Tcp_RetransSegs[5m])", "legendFormat": "retransmits/s" },
+        { "expr": "node_vmstat_oom_kill", "legendFormat": "oom_kills" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "short" }, "overrides": [] }
+    },
+
+    { "id": 1000, "type": "row", "title": "Disaster readiness", "gridPos": { "h": 1, "w": 24, "x": 0, "y": 124 }, "collapsed": false },
+    {
+      "id": 101,
+      "title": "Hours since last successful backup",
+      "type": "stat",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 125 },
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "targets": [
+        { "expr": "(time() - pg_backup_last_success_timestamp_seconds) / 3600", "legendFormat": "{{database}}" }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "h",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 24 },
+              { "color": "red", "value": 48 }
+            ]
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 102,
+      "title": "Last backup run status (1=OK, 0=FAIL)",
+      "type": "stat",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 125 },
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "targets": [
+        { "expr": "pg_backup_last_run_status", "legendFormat": "{{database}}" }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "red", "value": null },
+              { "color": "green", "value": 1 }
+            ]
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 103,
+      "title": "Reverse proxy upstream health",
+      "type": "stat",
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 133 },
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "targets": [
+        { "expr": "caddy_reverse_proxy_upstreams_healthy", "legendFormat": "{{upstream}}" }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "red", "value": null },
+              { "color": "green", "value": 1 }
+            ]
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 104,
+      "title": "Disk free, predicted in 7 days (/)",
+      "type": "stat",
+      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 133 },
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "targets": [
+        { "expr": "predict_linear(node_filesystem_avail_bytes{mountpoint=\"/\"}[6h], 7*24*3600)", "legendFormat": "predicted free" }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "bytes",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "red", "value": null },
+              { "color": "yellow", "value": 5000000000 },
+              { "color": "green", "value": 20000000000 }
+            ]
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 105,
+      "title": "Redis last bgsave status (1=OK, 0=FAIL)",
+      "type": "stat",
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 133 },
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "targets": [
+        { "expr": "redis_rdb_last_bgsave_status", "legendFormat": "bgsave" }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "red", "value": null },
+              { "color": "green", "value": 1 }
+            ]
+          }
+        },
+        "overrides": []
+      }
+    },
+
+    { "id": 1100, "type": "row", "title": "Postgres — query insights (pg_stat_statements)", "gridPos": { "h": 1, "w": 24, "x": 0, "y": 142 }, "collapsed": false },
+    {
+      "id": 111,
+      "title": "Query rate by database (calls/s)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 143 },
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "targets": [
+        { "expr": "sum by (datname) (rate(pg_stat_statements_calls[5m]))", "legendFormat": "{{datname}}" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "ops" }, "overrides": [] }
+    },
+    {
+      "id": 112,
+      "title": "Connections by state",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 143 },
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "targets": [
+        { "expr": "sum by (state) (pg_stat_activity_count)", "legendFormat": "{{state}}" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "short" }, "overrides": [] }
+    },
+    {
+      "id": 113,
+      "title": "Oldest transaction / query age by state",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 143 },
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "targets": [
+        { "expr": "max by (state) (pg_backend_age_max_xact_age_seconds)", "legendFormat": "xact: {{state}}" },
+        { "expr": "max by (state) (pg_backend_age_max_query_age_seconds)", "legendFormat": "query: {{state}}" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "s" }, "overrides": [] }
+    },
+    {
+      "id": 114,
+      "title": "Slowest queries (mean exec time, top 10)",
+      "type": "timeseries",
+      "gridPos": { "h": 9, "w": 24, "x": 0, "y": 151 },
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "targets": [
+        { "expr": "topk(10, pg_stat_statements_mean_exec_time_seconds)", "legendFormat": "{{datname}}: {{query}}" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "s" }, "overrides": [] }
     }
   ]
 }

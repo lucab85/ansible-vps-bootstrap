@@ -1,0 +1,61 @@
+pg_stat_statements:
+  query: |
+    SELECT
+      pg_database.datname,
+      pg_stat_statements.calls,
+      pg_stat_statements.total_exec_time / 1000.0 AS total_exec_time_seconds,
+      pg_stat_statements.mean_exec_time / 1000.0 AS mean_exec_time_seconds,
+      pg_stat_statements.rows,
+      left(pg_stat_statements.query, 200) AS query
+    FROM pg_stat_statements
+    JOIN pg_database ON pg_database.oid = pg_stat_statements.dbid
+    WHERE pg_stat_statements.query NOT ILIKE '%pg_stat_statements%'
+    ORDER BY pg_stat_statements.total_exec_time DESC
+    LIMIT 20
+  metrics:
+    - datname:
+        usage: "LABEL"
+        description: "Database name"
+    - query:
+        usage: "LABEL"
+        description: "Normalized query text (truncated to 200 chars)"
+    - calls:
+        usage: "COUNTER"
+        description: "Number of times the query has been executed"
+    - total_exec_time_seconds:
+        usage: "COUNTER"
+        description: "Total time spent executing the query"
+    - mean_exec_time_seconds:
+        usage: "GAUGE"
+        description: "Mean time spent executing the query"
+    - rows:
+        usage: "COUNTER"
+        description: "Total rows retrieved or affected"
+
+pg_backend_age:
+  query: |
+    SELECT
+      datname,
+      state,
+      COUNT(*) AS count,
+      COALESCE(MAX(EXTRACT(EPOCH FROM (now() - xact_start))), 0) AS max_xact_age_seconds,
+      COALESCE(MAX(EXTRACT(EPOCH FROM (now() - query_start))), 0) AS max_query_age_seconds
+    FROM pg_stat_activity
+    WHERE datname IS NOT NULL
+    GROUP BY datname, state
+  metrics:
+    - datname:
+        usage: "LABEL"
+        description: "Database name"
+    - state:
+        usage: "LABEL"
+        description: "Backend state (active, idle, idle in transaction, ...)"
+    - count:
+        usage: "GAUGE"
+        description: "Number of backends in this state"
+    - max_xact_age_seconds:
+        usage: "GAUGE"
+        description: "Age of the oldest open transaction in this state"
+    - max_query_age_seconds:
+        usage: "GAUGE"
+        description: "Age of the oldest running query in this state"

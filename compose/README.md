@@ -87,23 +87,67 @@ doesn't resolve yet.
   `puntofeste`/`smoothclothingbrand` databases were likewise created by hand
   (`CREATE DATABASE`) since they were added after the volume already existed.
 - `proxy/Caddyfile` — reverse proxy + automatic HTTPS for every VPS-hosted
-  domain in the table above. The storefronts (Vercel) aren't in here.
+  domain in the table above. The storefronts (Vercel) aren't in here. Global
+  options block (`admin 0.0.0.0:2019` + `metrics`) exposes Caddy's own
+  Prometheus metrics on the admin port — bound to `0.0.0.0` (not the default
+  `127.0.0.1`) so Prometheus, a *different* container, can reach it over the
+  `apps` network; same trust boundary as every other exporter (internal
+  Docker network only, never published to the host or internet).
 - `monitoring/prometheus/prometheus.yml` — scrape configs for node-exporter,
-  postgres-exporter, redis-exporter, and n8n's own `/metrics` endpoint
+  postgres-exporter, redis-exporter, n8n's own `/metrics` endpoint
   (`N8N_METRICS=true`, set directly on the `n8n` service — no separate
-  exporter needed, n8n exposes Prometheus format natively).
+  exporter needed, n8n exposes Prometheus format natively), and Caddy
+  (`caddy:2019/metrics`).
+- `monitoring/postgres-exporter/queries.yaml` — custom queries extending the
+  exporter beyond its built-in collectors: `pg_stat_statements_*` (per-query
+  calls/total & mean exec time/rows — needs the `pg_stat_statements`
+  extension, see Notes) and `pg_backend_age_*` (oldest transaction/query age
+  grouped by `datname`+`state` — the metric name is deliberately *not*
+  `pg_stat_activity`, since this exporter version already ships a built-in
+  collector under that name with different label sets; reusing the name
+  causes a HELP-string collision that takes down the *entire* `/metrics`
+  endpoint with a 500, not just the new metric — learned the hard way).
 - `monitoring/loki/loki-config.yml`, `monitoring/promtail/promtail-config.yml` —
   log aggregation; Promtail discovers containers via the Docker socket
   (`docker_sd_configs`), ships all container logs to Loki. 7-day retention.
 - `monitoring/grafana/provisioning/` — datasources (Prometheus + Loki) and a
-  dashboard (`vps-overview.json`, rows: Host, Postgres, Redis, n8n, Disk &
-  logs) provisioned automatically on boot — no manual Grafana setup needed.
-  Host: CPU/mem/disk/load/swap/disk-I/O/network. Postgres: connections, DB
-  size, cache hit ratio. Redis: memory, ops/sec, connected clients. n8n:
-  active workflows, process memory, event loop lag, execution rate by status
-  (empty until workflows actually run — that's correct, not broken). Plus a
-  disk-free stat and a per-container error/fatal log-line rate panel (Loki)
-  so a noisy container stands out before you'd think to go looking.
+  dashboard (`vps-overview.json`, 53 panels across 11 rows) provisioned
+  automatically on boot — no manual Grafana setup needed. Grafana's file
+  provider polls every 30s and picks up edits to the JSON directly (it's a
+  directory bind mount, so plain file edits are visible immediately — unlike
+  the single-file bind mounts used for `docker-compose.yml`/`Caddyfile`/
+  `prometheus.yml`, which pin to the inode present at container *start* and
+  need the container recreated, not just restarted, to see edits made by
+  tools that replace-via-rename). Rows: Host, Postgres, Redis, n8n, Disk &
+  logs (original baseline — CPU/mem/disk/load/swap/I/O/network,
+  connections/DB size/cache hit ratio, memory/ops/clients, active
+  workflows/RSS/event-loop lag/execution rate, disk-free + per-container
+  error-log-rate), plus RED/USE-method additions: **Caddy (edge) — RED**
+  (request rate, 5xx error %, p50/p95/p99 duration, requests by status code),
+  **Postgres — extra** (connections vs `max_connections`, deadlocks/rollbacks
+  per min, temp-file spill rate), **Redis — extra** (rejected connections,
+  evicted/expired keys, time since last RDB save), **Host — extra (USE)**
+  (inode usage %, network errors/drops, TCP retransmits, OOM kill count),
+  **Disaster readiness** (hours since last successful Postgres backup per
+  database, last backup run status, reverse-proxy upstream health, 7-day
+  disk-full prediction via `predict_linear`, Redis last bgsave status), and
+  **Postgres — query insights** (query rate by database, connections by
+  state, oldest transaction/query age by state, top 10 slowest queries by
+  mean exec time — needs `pg_stat_statements`, see Notes).
+- `backup-postgres.sh` — nightly `pg_dump -Fc` of every database on the
+  shared Postgres instance (dynamically enumerated, not hardcoded), 30-day
+  rotation, run via cron on the VPS (not Ansible-managed — install with
+  `(crontab -l 2>/dev/null; echo "0 3 * * * /opt/apps/backup-postgres.sh") |
+  crontab -`, runs nightly at 03:00 in the host's timezone). Writes to
+  `/opt/apps/backups/<db>_<timestamp>.dump`, logs to
+  `/opt/apps/backups/backup.log`, and emits a Prometheus textfile metric
+  (`/opt/apps/monitoring/textfile_collector/postgres_backup.prom` —
+  `pg_backup_last_success_timestamp_seconds`, `pg_backup_last_run_status` per
+  database) that node-exporter's textfile collector picks up, feeding the
+  "Disaster readiness" dashboard row. Restore: `docker exec -i
+  apps-postgres-1 pg_restore -U appuser -d <dbname> -c <
+  backups/<file>.dump`. Off-VPS copies of these dumps are still not
+  automated — see the "known follow-up" note under Monitoring stack.
 - `.env.example` — template for the real `/opt/apps/.env` on the VPS
   (secrets, never committed).
 - `configure-env.sh` — run **on the VPS**, reads `/opt/apps/.env` and writes
@@ -175,8 +219,14 @@ Everything lives behind Grafana at `https://monitor.openempower.com`
 Prometheus, Loki, and all the exporters are only reachable on the internal
 `apps` Docker network, not published to the host or the internet.
 
-- **Metrics**: node-exporter (host CPU/mem/disk/network), postgres-exporter,
-  redis-exporter — all scraped by Prometheus every 15s, 15-day retention.
+- **Metrics**: node-exporter (host CPU/mem/disk/network), postgres-exporter
+  (including custom `pg_stat_statements`/`pg_backend_age` queries),
+  redis-exporter, Caddy's own `/metrics` — all scraped by Prometheus every
+  15s, 15-day retention.
+- **Dashboard follows RED (Rate/Errors/Duration, for Caddy) and USE
+  (Utilization/Saturation/Errors, for host/Postgres/Redis)** on top of the
+  original per-service panels — see the dashboard row list under `Layout`
+  above for the full breakdown.
 - **Logs**: Promtail tails every container's logs via the Docker socket and
   ships them to Loki (7-day retention). Query with `{container="apps-medusa-1"}`
   etc. in Grafana's Explore view, or use the "Container logs" panel on the
@@ -228,6 +278,21 @@ Prometheus, Loki, and all the exporters are only reachable on the internal
   in the `modules` array. Left as in-memory for now since a single
   `shared`-mode instance doesn't need it.
 - Disk/log hygiene beyond Loki's 7-day retention (Docker image/build-cache
-  pruning, n8n execution pruning, off-VPS backups, disk-usage alerting) is a
-  known follow-up, not yet automated — `docker builder prune -f` has been run
-  by hand a few times after iterative builds.
+  pruning, n8n execution pruning, disk-usage alerting) is a known follow-up,
+  not yet automated — `docker builder prune -f` has been run by hand a few
+  times after iterative builds. Postgres backups are automated (see
+  `backup-postgres.sh` above), but only *on* the VPS — an off-VPS copy (S3,
+  another host, etc.) is still not automated; a single-disk failure currently
+  takes out both the live data and its backups.
+- `pg_stat_statements` needs `shared_preload_libraries` set at Postgres
+  startup (can't be enabled by `ALTER SYSTEM` + reload, needs a full
+  container restart — briefly drops connections from every backend, which
+  reconnect on their next query) *and* `CREATE EXTENSION pg_stat_statements;`
+  run by hand once against the `postgres` database on an already-initialized
+  volume (same `docker-entrypoint-initdb.d`-only-runs-on-a-fresh-volume
+  caveat as `02-monitoring-user.sh` above — new volumes get neither
+  automatically without also adding this to an init script). Installing it
+  in one database (`postgres`, since that's `postgres-exporter`'s
+  `DATA_SOURCE_NAME` target) is enough — the view reports every query
+  cluster-wide via its `dbid`/`datname` columns, not just that database's own
+  queries.
