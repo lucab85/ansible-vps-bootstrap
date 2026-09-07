@@ -5,6 +5,10 @@ group_vars/vps.yml
 # Real app-stack secrets and generated env files live only on the VPS.
 compose/.env
 
+# ~215MB Claude Code binary, extracted from an authenticated host at build
+# time — not something to redistribute via git. See compose/claude-bridge/README.md.
+compose/claude-bridge/claude-bin
+
 # Consolidated local record of every generated password/secret.
 credentials.txt
 

@@ -67,12 +67,37 @@ services:
       N8N_METRICS: "true"
       N8N_METRICS_INCLUDE_DEFAULT_METRICS: "true"
       N8N_METRICS_INCLUDE_QUEUE_METRICS: "true"
+      # Read via {{ $env.X }} inside specific workflow nodes (HTTP Request
+      # headers), not n8n credential objects — see lucab85/n8n-workflows.
+      GITHUB_TOKEN: ${GITHUB_TOKEN}
+      CONVERTKIT_API_SECRET: ${CONVERTKIT_API_SECRET}
+      APIFY_TOKEN: ${APIFY_TOKEN}
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
     volumes:
       - n8n_data:/home/node/.n8n
     networks: [apps]
     depends_on:
       postgres:
         condition: service_healthy
+
+  claude-bridge:
+    build:
+      context: ./claude-bridge
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      BRIDGE_KEY: ${CLAUDE_BRIDGE_KEY}
+      CLAUDE_TIMEOUT: "300"
+      CLAUDE_CONCURRENCY: "1"
+    volumes:
+      # Same OAuth session as the interactive Claude Code session on this
+      # host, mounted read-only — the bridge shares its usage quota, it
+      # doesn't have a separate identity. --no-session-persistence in the
+      # bridge's invocation means it never needs to write here.
+      - /home/deploy/.claude.json:/root/.claude.json:ro
+      - /home/deploy/.claude/.credentials.json:/root/.claude/.credentials.json:ro
+      - /home/deploy/.claude/settings.json:/root/.claude/settings.json:ro
+    networks: [apps]
 
   medusa:
     build:

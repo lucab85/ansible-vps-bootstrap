@@ -70,13 +70,18 @@ doesn't resolve yet.
 
 ## Layout
 
-- `docker-compose.yml` — 14 services. App layer: `caddy`, `postgres`, `redis`,
-  `n8n`, `medusa` (techmeout), `puntofeste-backend`,
+- `docker-compose.yml` — 15 services. App layer: `caddy`, `postgres`, `redis`,
+  `n8n`, `claude-bridge`, `medusa` (techmeout), `puntofeste-backend`,
   `smoothclothingbrand-backend`. Monitoring layer: `node-exporter`,
   `postgres-exporter`, `redis-exporter`, `prometheus`, `loki`, `promtail`,
   `grafana`. One Postgres instance with a database per store (`n8n`,
   `medusa`, `puntofeste`, `smoothclothingbrand`), one shared Redis (isolated
   per store by logical DB index — see below).
+- `claude-bridge/` — see `claude-bridge/README.md`: exposes the host's
+  already-authenticated Claude Code CLI as an OpenAI-compatible API,
+  internal-only (`http://claude-bridge:8000` on the `apps` network, no
+  Caddy route), so n8n workflows can call it instead of a paid Anthropic
+  API key.
 - `postgres/init/01-databases.sh` — creates the `n8n` and `medusa` databases
   on first boot. `02-monitoring-user.sh` — creates a read-only
   `postgres_exporter` role (`pg_monitor`) for Prometheus to scrape with,
