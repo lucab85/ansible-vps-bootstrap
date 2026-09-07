@@ -67,12 +67,18 @@ services:
       N8N_METRICS: "true"
       N8N_METRICS_INCLUDE_DEFAULT_METRICS: "true"
       N8N_METRICS_INCLUDE_QUEUE_METRICS: "true"
+      # n8n blocks {{ $env.X }} in node expressions by default (security
+      # default for multi-tenant instances) — several workflows here rely
+      # on it (GITHUB_TOKEN, CLAUDE_BRIDGE_KEY, etc.), and this is a
+      # single-owner instance, so it's safe to allow.
+      N8N_BLOCK_ENV_ACCESS_IN_NODE: "false"
       # Read via {{ $env.X }} inside specific workflow nodes (HTTP Request
       # headers), not n8n credential objects — see lucab85/n8n-workflows.
       GITHUB_TOKEN: ${GITHUB_TOKEN}
       CONVERTKIT_API_SECRET: ${CONVERTKIT_API_SECRET}
       APIFY_TOKEN: ${APIFY_TOKEN}
       OPENAI_API_KEY: ${OPENAI_API_KEY}
+      CLAUDE_BRIDGE_KEY: ${CLAUDE_BRIDGE_KEY}
     volumes:
       - n8n_data:/home/node/.n8n
     networks: [apps]
