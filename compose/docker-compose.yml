@@ -100,9 +100,22 @@ services:
       # host, mounted read-only — the bridge shares its usage quota, it
       # doesn't have a separate identity. --no-session-persistence in the
       # bridge's invocation means it never needs to write here.
+      #
+      # Mount the whole ~/.claude directory, not individual files inside
+      # it (credentials.json, settings.json) — a single-file bind mount
+      # pins the container to the inode that existed at mount/start time.
+      # The host's OAuth refresh replaces .credentials.json atomically
+      # (unlink+rename), which is invisible to a single-file bind mount:
+      # the container keeps reading the old, now-dead token forever and
+      # the CLI reports "OAuth access token has been revoked" even though
+      # the host's real session is fine. A directory-level bind mount
+      # doesn't have this problem — a replaced file inside it is visible
+      # immediately. (Diagnosed by diffing the container's and host's
+      # .credentials.json byte-for-byte: different tokens, different
+      # expiresAt — confirmed fixed by restarting the container so it
+      # re-resolves the mount, then made permanent with this change.)
       - /home/deploy/.claude.json:/root/.claude.json:ro
-      - /home/deploy/.claude/.credentials.json:/root/.claude/.credentials.json:ro
-      - /home/deploy/.claude/settings.json:/root/.claude/settings.json:ro
+      - /home/deploy/.claude:/root/.claude:ro
     networks: [apps]
 
   medusa:

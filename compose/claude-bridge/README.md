@@ -32,17 +32,34 @@ Then `docker compose build claude-bridge`.
 ## Authentication
 
 The container mounts the **same OAuth session** as the interactive
-Claude Code session on the host (`~/.claude.json`,
-`~/.claude/.credentials.json`, `~/.claude/settings.json`, all read-only)
-— see the `claude-bridge` service block in `../docker-compose.yml`. It
-does not have a separate identity or API key: every request through the
-bridge draws on that same account's usage/rate limits. The bridge's own
+Claude Code session on the host (`~/.claude.json` as a single file,
+plus the whole `~/.claude` directory, all read-only) — see the
+`claude-bridge` service block in `../docker-compose.yml`. It does not
+have a separate identity or API key: every request through the bridge
+draws on that same account's usage/rate limits. The bridge's own
 `--no-session-persistence` flag means it never needs to write back to
 those files.
 
-If the host's Claude Code session ever re-authenticates (new OAuth
-token), the container picks it up automatically on its next request —
-no rebuild needed, since the files are mounted, not copied in.
+**`~/.claude` is mounted as a directory, not as individual files
+inside it — this matters.** A single-file bind mount pins the
+container to the inode that existed at mount/start time. The host's
+OAuth refresh replaces `.credentials.json` atomically (unlink+rename),
+which a single-file bind mount can't see: the container keeps reading
+the old, now-dead token forever, and `claude` reports `API Error: 401
+OAuth access token has been revoked` even though the host's real
+session is perfectly fine. Mounting the parent directory avoids this —
+a file replaced inside a mounted directory is visible immediately, no
+container restart needed. (This bit us in production: `docker exec`
+into the container and diffing its `.credentials.json` against the
+host's showed two different tokens with different `expiresAt` values —
+proof it was a stale mount, not an actual revocation. A container
+restart alone fixed it temporarily; mounting the directory instead of
+the two individual files inside it fixed it for good.)
+
+If you ever see that exact "access token has been revoked" error and
+`claude auth status` / a direct host-side `claude -p` call both work
+fine, suspect this class of bug before suspecting real revocation —
+diff the container's credential file against the host's.
 
 ## Config
 
