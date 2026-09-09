@@ -138,9 +138,19 @@ services:
     working_dir: /app
     volumes:
       - /opt/apps/puntofeste/apps/backend:/app
-    command: sh -c "npm install && npx medusa db:migrate && npx medusa db:sync-links && npx medusa develop"
+    # Production build, not `medusa develop` - dev mode forks a second node
+    # process for the actual server on top of the supervisor/watcher one,
+    # roughly doubling RSS, and its file-watcher/HMR state was the single
+    # biggest source of swapped-out memory on this host. NODE_ENV=production
+    # must NOT be set during npm install/build - npm skips devDependencies
+    # (ts-node, @swc/core) under NODE_ENV=production, which breaks loading
+    # medusa-config.ts (verified in an isolated /tmp copy, completely
+    # separate from this bind mount, before ever touching this container).
+    # medusa build's output lives in .medusa/server with its own
+    # package.json - migrations and start run from there per Medusa's own
+    # production docs, not from the project root.
+    command: sh -c "npm install && npx medusa build && cd .medusa/server && npm install && npx medusa db:migrate && npx medusa db:sync-links && NODE_ENV=production npx medusa start"
     environment:
-      NODE_ENV: development
       DATABASE_URL: "postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/puntofeste"
       REDIS_URL: "redis://redis:6379/1"
       STORE_CORS: ${PUNTOFESTE_STOREFRONT_URL}
