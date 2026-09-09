@@ -3,12 +3,14 @@
 	metrics
 }
 
+# admin.techmeout.it (the original `medusa` service) is deliberately not
+# routed here - kept running as the template new shops get scaffolded from
+# (see compose/NEW_TENANT.md), not as a publicly reachable store itself.
+# shop.techmeout.it was never routed here at all - it's Vercel-hosted, not
+# this host's concern.
+
 n8n.openempower.com {
 	reverse_proxy n8n:5678
-}
-
-admin.techmeout.it {
-	reverse_proxy medusa:9000
 }
 
 monitor.openempower.com {
@@ -23,6 +25,6 @@ admin-smoothclothingbrand.techmeout.it {
 	reverse_proxy smoothclothingbrand-backend:9000
 }
 
-postiz.techmeout.it {
+postiz.lucaberton.com {
 	reverse_proxy postiz:5000
 }

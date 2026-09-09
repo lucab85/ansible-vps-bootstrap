@@ -43,10 +43,10 @@ services:
     networks: [apps]
     depends_on:
       - n8n
-      - medusa
       - grafana
       - puntofeste-backend
       - smoothclothingbrand-backend
+      - postiz
 
   n8n:
     image: n8nio/n8n:latest
@@ -156,9 +156,9 @@ services:
     image: ghcr.io/gitroomhq/postiz-app:latest
     restart: unless-stopped
     environment:
-      MAIN_URL: https://postiz.techmeout.it
-      FRONTEND_URL: https://postiz.techmeout.it
-      NEXT_PUBLIC_BACKEND_URL: https://postiz.techmeout.it/api
+      MAIN_URL: https://postiz.lucaberton.com
+      FRONTEND_URL: https://postiz.lucaberton.com
+      NEXT_PUBLIC_BACKEND_URL: https://postiz.lucaberton.com/api
       BACKEND_INTERNAL_URL: http://localhost:3000
       JWT_SECRET: ${POSTIZ_JWT_SECRET}
       DATABASE_URL: "postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/postiz"
