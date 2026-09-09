@@ -173,9 +173,16 @@ services:
     working_dir: /app
     volumes:
       - /opt/apps/smoothclothingbrand/apps/backend:/app
-    command: sh -c "npm install && npx medusa db:migrate && npx medusa db:sync-links && npx medusa develop"
+    # Same production-build fix as puntofeste-backend above - see that
+    # service's comment for the full rationale (dev-mode's forked child
+    # process + watcher state was the biggest source of swapped memory on
+    # this host, NODE_ENV=production must stay off npm install/build or it
+    # strips devDependencies needed to load medusa-config.ts, and migrations
+    # run from .medusa/server per Medusa's production docs). Verified in an
+    # isolated /tmp copy end to end (build, db:migrate, db:sync-links against
+    # the real DB, and a real medusa start serving 200s) before applying here.
+    command: sh -c "npm install && npx medusa build && cd .medusa/server && npm install && npx medusa db:migrate && npx medusa db:sync-links && NODE_ENV=production npx medusa start"
     environment:
-      NODE_ENV: development
       DATABASE_URL: "postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/smoothclothingbrand"
       REDIS_URL: "redis://redis:6379/2"
       STORE_CORS: ${SMOOTHCLOTHINGBRAND_STOREFRONT_URL}
