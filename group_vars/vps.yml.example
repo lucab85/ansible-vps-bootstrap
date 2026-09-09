@@ -4,7 +4,18 @@ admin_ssh_public_key: "ssh-ed25519 AAAA... replace-me"
 
 server_timezone: Europe/Rome
 swap_size_mb: 4096
-swap_swappiness: 10
+# Was 10 (conservative, tuned to avoid slow disk swap). Now that zram is the
+# top-priority swap device (fast, compressed, in RAM), raised to lean into
+# using it rather than reserve it defensively - the disk swapfile below is
+# now the fallback for if zram itself ever fills, not the primary swap.
+swap_swappiness: 100
+
+zram_enabled: true
+# A device *capacity* cap, not real RAM consumed - see
+# templates/zram-generator.conf.j2 for why 2x RAM is safe here.
+zram_size_expression: "min(ram * 2, 8192)"
+zram_compression_algorithm: zstd
+zram_swap_priority: 100
 
 # Enable only after confirming that SSH key login as `admin_user` works.
 ssh_disable_root_login: false

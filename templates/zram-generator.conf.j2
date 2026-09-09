@@ -1,0 +1,13 @@
+# zstd gives the best compression ratio of the algorithms this kernel
+# supports (lzo, lzo-rle, lz4, lz4hc, 842, zstd) - worth the extra CPU here
+# since RAM, not CPU, is this host's actual constraint. zram-size is a
+# device *capacity* cap, not real RAM consumed: zram only uses real RAM for
+# the compressed bytes it actually holds, so sizing it generously (2x RAM)
+# costs nothing until it's genuinely full. swap-priority is set well above
+# the disk-backed swapfile's auto-assigned negative priority, so the kernel
+# always prefers this fast, compressed device first - the disk swapfile
+# stays configured as a fallback only, for if zram itself ever fills up.
+[zram0]
+zram-size = {{ zram_size_expression }}
+compression-algorithm = {{ zram_compression_algorithm }}
+swap-priority = {{ zram_swap_priority }}

@@ -120,6 +120,32 @@
         state: present
         sysctl_set: true
 
+    - name: Install zram support
+      ansible.builtin.apt:
+        name: systemd-zram-generator
+        state: present
+      when: zram_enabled | bool
+
+    - name: Configure aggressive zram swap
+      ansible.builtin.template:
+        src: templates/zram-generator.conf.j2
+        dest: /etc/systemd/zram-generator.conf
+        owner: root
+        group: root
+        mode: "0644"
+      when: zram_enabled | bool
+
+    # Generator-derived units are "static" - always processed at boot from
+    # the config above, nothing to enable. On an already-running host
+    # (not a fresh boot) a daemon-reload is needed to pick up config changes;
+    # state: started is idempotent and won't restart an already-active swap.
+    - name: Ensure zram swap is active
+      ansible.builtin.systemd_service:
+        name: dev-zram0.swap
+        daemon_reload: true
+        state: started
+      when: zram_enabled | bool
+
     - name: Install Docker signing key
       ansible.builtin.get_url:
         url: https://download.docker.com/linux/ubuntu/gpg
