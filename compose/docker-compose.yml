@@ -118,6 +118,72 @@ services:
       - /home/deploy/.claude:/root/.claude:ro
     networks: [apps]
 
+  # Postiz's job-scheduling backend. Upstream's own docker-compose pairs this
+  # with a dedicated Elasticsearch + Temporal-Postgres + Temporal-UI +
+  # admin-tools stack (~1.5-2GB+ RAM) - all skipped here. DYNAMIC_CONFIG_FILE_
+  # PATH=development-sql.yaml is the same file upstream's compose already
+  # uses; Elasticsearch there is a pure opt-in (ENABLE_ES=true + ES_SEEDS),
+  # not a requirement - omitting it just means standard (SQL-based) visibility
+  # instead of advanced/search visibility, which is all Postiz's own internal
+  # scheduling needs (confirmed against Temporal's own official ES-free
+  # docker-compose-postgres.yml sample, which uses this identical config).
+  # Reuses this host's shared Postgres (own appuser has CREATEDB - Temporal's
+  # auto-setup creates its own `temporal`/`temporal_visibility` databases
+  # there on first boot) instead of a dedicated Postgres container.
+  temporal:
+    image: temporalio/auto-setup:1.28.1
+    restart: unless-stopped
+    environment:
+      DB: postgres12
+      DB_PORT: "5432"
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PWD: ${POSTGRES_PASSWORD}
+      POSTGRES_SEEDS: postgres
+      DYNAMIC_CONFIG_FILE_PATH: config/dynamicconfig/development-sql.yaml
+      TEMPORAL_ADDRESS: temporal:7233
+    volumes:
+      # Not baked into the temporalio/auto-setup image itself - both
+      # upstream's own docker-compose sample and Postiz's compose mount this
+      # exact file in from outside. Fetched verbatim from
+      # temporalio/docker-compose's dynamicconfig/development-sql.yaml.
+      - ./temporal/dynamicconfig:/etc/temporal/config/dynamicconfig:ro
+    networks: [apps]
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  postiz:
+    image: ghcr.io/gitroomhq/postiz-app:latest
+    restart: unless-stopped
+    environment:
+      MAIN_URL: https://postiz.techmeout.it
+      FRONTEND_URL: https://postiz.techmeout.it
+      NEXT_PUBLIC_BACKEND_URL: https://postiz.techmeout.it/api
+      BACKEND_INTERNAL_URL: http://localhost:3000
+      JWT_SECRET: ${POSTIZ_JWT_SECRET}
+      DATABASE_URL: "postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/postiz"
+      REDIS_URL: "redis://redis:6379/3"
+      TEMPORAL_ADDRESS: temporal:7233
+      IS_GENERAL: "true"
+      # Registration is open until the first (your) account exists - flip
+      # this to "true" right after, so the public URL can't be used to
+      # create unrelated accounts.
+      DISABLE_REGISTRATION: "false"
+      STORAGE_PROVIDER: local
+      UPLOAD_DIRECTORY: /uploads
+      NEXT_PUBLIC_UPLOAD_DIRECTORY: /uploads
+    volumes:
+      - postiz_config:/config/
+      - postiz_uploads:/uploads/
+    networks: [apps]
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      temporal:
+        condition: service_started
+
   medusa:
     build:
       context: ./medusa
@@ -299,3 +365,5 @@ volumes:
   prometheus_data:
   loki_data:
   grafana_data:
+  postiz_config:
+  postiz_uploads:

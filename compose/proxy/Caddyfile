@@ -22,3 +22,7 @@ admin-puntofeste.techmeout.it {
 admin-smoothclothingbrand.techmeout.it {
 	reverse_proxy smoothclothingbrand-backend:9000
 }
+
+postiz.techmeout.it {
+	reverse_proxy postiz:5000
+}
