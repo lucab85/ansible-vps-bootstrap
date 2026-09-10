@@ -28,3 +28,10 @@ admin-smoothclothingbrand.techmeout.it {
 postiz.lucaberton.com {
 	reverse_proxy postiz:5000
 }
+
+seo.lucaberton.com {
+	basic_auth {
+		luca {$OPEN_SEO_BASIC_AUTH_HASH}
+	}
+	reverse_proxy open-seo:3001
+}

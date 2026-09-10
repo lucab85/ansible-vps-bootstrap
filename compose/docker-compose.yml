@@ -36,6 +36,13 @@ services:
     ports:
       - "80:80"
       - "443:443"
+    environment:
+      # open-seo has no auth of its own (AUTH_MODE=local_noauth, by its own
+      # docs) - this is the bcrypt hash Caddy's basic_auth directive checks
+      # against. Read via Caddyfile's {$VAR} syntax (Caddy's own env
+      # substitution at its startup, separate from Compose's), not baked
+      # into the tracked Caddyfile.
+      OPEN_SEO_BASIC_AUTH_HASH: ${OPEN_SEO_BASIC_AUTH_HASH}
     volumes:
       - ./proxy/Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy_data:/data
@@ -47,6 +54,7 @@ services:
       - puntofeste-backend
       - smoothclothingbrand-backend
       - postiz
+      - open-seo
 
   n8n:
     image: n8nio/n8n:latest
@@ -183,6 +191,27 @@ services:
         condition: service_healthy
       temporal:
         condition: service_started
+
+  # Single container, SQLite-backed (via the /app/.wrangler volume - Cloudflare
+  # Workers' local D1 emulation, per its own compose.yaml) - no Postgres/Redis
+  # needed, unlike Postiz. Requires a real DATAFORSEO_API_KEY (paid, the
+  # user's own account - not something to generate) before this is actually
+  # useful; left unset/blank in .env until that's provided. AUTH_MODE is
+  # deliberately local_noauth (its own docs: "only expose behind your own
+  # auth-protected reverse proxy") - that's the caddy basic_auth block on
+  # its Caddyfile route, not anything this container does itself.
+  open-seo:
+    image: ghcr.io/every-app/open-seo:latest
+    restart: unless-stopped
+    environment:
+      PORT: "3001"
+      ALLOWED_HOST: seo.lucaberton.com
+      AUTH_MODE: local_noauth
+      DATAFORSEO_API_KEY: ${DATAFORSEO_API_KEY}
+      OPENSEO_TELEMETRY_DISABLED: "1"
+    volumes:
+      - open_seo_data:/app/.wrangler
+    networks: [apps]
 
   medusa:
     build:
@@ -398,3 +427,4 @@ volumes:
   grafana_data:
   postiz_config:
   postiz_uploads:
+  open_seo_data:
