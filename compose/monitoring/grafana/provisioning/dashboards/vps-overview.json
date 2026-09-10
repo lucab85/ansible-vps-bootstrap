@@ -5,389 +5,1012 @@
   "schemaVersion": 39,
   "version": 5,
   "refresh": "30s",
-  "time": { "from": "now-6h", "to": "now" },
+  "time": {
+    "from": "now-6h",
+    "to": "now"
+  },
   "panels": [
-    { "id": 100, "type": "row", "title": "Host", "gridPos": { "h": 1, "w": 24, "x": 0, "y": 0 }, "collapsed": false },
+    {
+      "id": 100,
+      "type": "row",
+      "title": "Host",
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
+      "collapsed": false
+    },
     {
       "id": 1,
       "title": "Host CPU usage %",
       "type": "timeseries",
-      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 1 },
-      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 0,
+        "y": 1
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "Prometheus"
+      },
       "targets": [
-        { "expr": "100 - (avg by (instance) (rate(node_cpu_seconds_total{mode=\"idle\"}[5m])) * 100)", "legendFormat": "cpu" }
+        {
+          "expr": "100 - (avg by (instance) (rate(node_cpu_seconds_total{mode=\"idle\"}[5m])) * 100)",
+          "legendFormat": "cpu"
+        }
       ],
-      "fieldConfig": { "defaults": { "unit": "percent", "min": 0, "max": 100 }, "overrides": [] }
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "min": 0,
+          "max": 100
+        },
+        "overrides": []
+      }
     },
     {
       "id": 2,
       "title": "Host Memory used %",
       "type": "timeseries",
-      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 1 },
-      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 8,
+        "y": 1
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "Prometheus"
+      },
       "targets": [
-        { "expr": "(1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100", "legendFormat": "memory" }
+        {
+          "expr": "(1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100",
+          "legendFormat": "memory"
+        }
       ],
-      "fieldConfig": { "defaults": { "unit": "percent", "min": 0, "max": 100 }, "overrides": [] }
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "min": 0,
+          "max": 100
+        },
+        "overrides": []
+      }
     },
     {
       "id": 3,
       "title": "Host Disk used % (/)",
       "type": "timeseries",
-      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 1 },
-      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 16,
+        "y": 1
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "Prometheus"
+      },
       "targets": [
-        { "expr": "(1 - (node_filesystem_avail_bytes{mountpoint=\"/\"} / node_filesystem_size_bytes{mountpoint=\"/\"})) * 100", "legendFormat": "disk" }
+        {
+          "expr": "(1 - (node_filesystem_avail_bytes{mountpoint=\"/\"} / node_filesystem_size_bytes{mountpoint=\"/\"})) * 100",
+          "legendFormat": "disk"
+        }
       ],
-      "fieldConfig": { "defaults": { "unit": "percent", "min": 0, "max": 100 }, "overrides": [] }
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "min": 0,
+          "max": 100
+        },
+        "overrides": []
+      }
     },
     {
       "id": 11,
       "title": "Load average",
       "type": "timeseries",
-      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 9 },
-      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 0,
+        "y": 9
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "Prometheus"
+      },
       "targets": [
-        { "expr": "node_load1", "legendFormat": "1m" },
-        { "expr": "node_load5", "legendFormat": "5m" },
-        { "expr": "node_load15", "legendFormat": "15m" }
+        {
+          "expr": "node_load1",
+          "legendFormat": "1m"
+        },
+        {
+          "expr": "node_load5",
+          "legendFormat": "5m"
+        },
+        {
+          "expr": "node_load15",
+          "legendFormat": "15m"
+        }
       ],
-      "fieldConfig": { "defaults": { "unit": "short" }, "overrides": [] }
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short"
+        },
+        "overrides": []
+      }
     },
     {
       "id": 12,
       "title": "Swap used %",
       "type": "timeseries",
-      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 9 },
-      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 8,
+        "y": 9
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "Prometheus"
+      },
       "targets": [
-        { "expr": "(1 - (node_memory_SwapFree_bytes / node_memory_SwapTotal_bytes)) * 100", "legendFormat": "swap" }
+        {
+          "expr": "(1 - (node_memory_SwapFree_bytes / node_memory_SwapTotal_bytes)) * 100",
+          "legendFormat": "swap"
+        }
       ],
-      "fieldConfig": { "defaults": { "unit": "percent", "min": 0, "max": 100 }, "overrides": [] }
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "min": 0,
+          "max": 100
+        },
+        "overrides": []
+      }
     },
     {
       "id": 13,
       "title": "Disk I/O",
       "type": "timeseries",
-      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 9 },
-      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 16,
+        "y": 9
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "Prometheus"
+      },
       "targets": [
-        { "expr": "rate(node_disk_read_bytes_total{device=\"vda\"}[5m])", "legendFormat": "read" },
-        { "expr": "rate(node_disk_written_bytes_total{device=\"vda\"}[5m])", "legendFormat": "write" }
+        {
+          "expr": "rate(node_disk_read_bytes_total{device=\"vda\"}[5m])",
+          "legendFormat": "read"
+        },
+        {
+          "expr": "rate(node_disk_written_bytes_total{device=\"vda\"}[5m])",
+          "legendFormat": "write"
+        }
       ],
-      "fieldConfig": { "defaults": { "unit": "Bps" }, "overrides": [] }
+      "fieldConfig": {
+        "defaults": {
+          "unit": "Bps"
+        },
+        "overrides": []
+      }
     },
     {
       "id": 10,
       "title": "Host network traffic",
       "type": "timeseries",
-      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 17 },
-      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 17
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "Prometheus"
+      },
       "targets": [
-        { "expr": "rate(node_network_receive_bytes_total{device!=\"lo\"}[5m])", "legendFormat": "rx {{device}}" },
-        { "expr": "rate(node_network_transmit_bytes_total{device!=\"lo\"}[5m])", "legendFormat": "tx {{device}}" }
+        {
+          "expr": "rate(node_network_receive_bytes_total{device!=\"lo\"}[5m])",
+          "legendFormat": "rx {{device}}"
+        },
+        {
+          "expr": "rate(node_network_transmit_bytes_total{device!=\"lo\"}[5m])",
+          "legendFormat": "tx {{device}}"
+        }
       ],
-      "fieldConfig": { "defaults": { "unit": "Bps" }, "overrides": [] }
+      "fieldConfig": {
+        "defaults": {
+          "unit": "Bps"
+        },
+        "overrides": []
+      }
     },
-
-    { "id": 200, "type": "row", "title": "Postgres", "gridPos": { "h": 1, "w": 24, "x": 0, "y": 25 }, "collapsed": false },
+    {
+      "id": 200,
+      "type": "row",
+      "title": "Postgres",
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 25
+      },
+      "collapsed": false
+    },
     {
       "id": 6,
       "title": "Active connections",
       "type": "timeseries",
-      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 26 },
-      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 0,
+        "y": 26
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "Prometheus"
+      },
       "targets": [
-        { "expr": "sum(pg_stat_database_numbackends)", "legendFormat": "connections" }
+        {
+          "expr": "sum(pg_stat_database_numbackends)",
+          "legendFormat": "connections"
+        }
       ],
-      "fieldConfig": { "defaults": { "unit": "short" }, "overrides": [] }
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short"
+        },
+        "overrides": []
+      }
     },
     {
       "id": 21,
       "title": "Database size",
       "type": "timeseries",
-      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 26 },
-      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 8,
+        "y": 26
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "Prometheus"
+      },
       "targets": [
-        { "expr": "pg_database_size_bytes{datname=~\"n8n|medusa\"}", "legendFormat": "{{datname}}" }
+        {
+          "expr": "pg_database_size_bytes{datname=~\"n8n|medusa\"}",
+          "legendFormat": "{{datname}}"
+        }
       ],
-      "fieldConfig": { "defaults": { "unit": "bytes" }, "overrides": [] }
+      "fieldConfig": {
+        "defaults": {
+          "unit": "bytes"
+        },
+        "overrides": []
+      }
     },
     {
       "id": 22,
       "title": "Cache hit ratio",
       "type": "timeseries",
-      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 26 },
-      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 16,
+        "y": 26
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "Prometheus"
+      },
       "targets": [
         {
           "expr": "sum(rate(pg_stat_database_blks_hit[5m])) / (sum(rate(pg_stat_database_blks_hit[5m])) + sum(rate(pg_stat_database_blks_read[5m]))) * 100",
           "legendFormat": "hit ratio"
         }
       ],
-      "fieldConfig": { "defaults": { "unit": "percent", "min": 0, "max": 100 }, "overrides": [] }
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "min": 0,
+          "max": 100
+        },
+        "overrides": []
+      }
     },
-
-    { "id": 300, "type": "row", "title": "Redis", "gridPos": { "h": 1, "w": 24, "x": 0, "y": 34 }, "collapsed": false },
+    {
+      "id": 300,
+      "type": "row",
+      "title": "Redis",
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 34
+      },
+      "collapsed": false
+    },
     {
       "id": 7,
       "title": "Memory used",
       "type": "timeseries",
-      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 35 },
-      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 0,
+        "y": 35
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "Prometheus"
+      },
       "targets": [
-        { "expr": "redis_memory_used_bytes", "legendFormat": "used" }
+        {
+          "expr": "redis_memory_used_bytes",
+          "legendFormat": "used"
+        }
       ],
-      "fieldConfig": { "defaults": { "unit": "bytes" }, "overrides": [] }
+      "fieldConfig": {
+        "defaults": {
+          "unit": "bytes"
+        },
+        "overrides": []
+      }
     },
     {
       "id": 31,
       "title": "Commands/sec",
       "type": "timeseries",
-      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 35 },
-      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 8,
+        "y": 35
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "Prometheus"
+      },
       "targets": [
-        { "expr": "rate(redis_commands_processed_total[5m])", "legendFormat": "ops/s" }
+        {
+          "expr": "rate(redis_commands_processed_total[5m])",
+          "legendFormat": "ops/s"
+        }
       ],
-      "fieldConfig": { "defaults": { "unit": "ops" }, "overrides": [] }
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ops"
+        },
+        "overrides": []
+      }
     },
     {
       "id": 32,
       "title": "Connected clients",
       "type": "timeseries",
-      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 35 },
-      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 16,
+        "y": 35
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "Prometheus"
+      },
       "targets": [
-        { "expr": "redis_connected_clients", "legendFormat": "clients" }
+        {
+          "expr": "redis_connected_clients",
+          "legendFormat": "clients"
+        }
       ],
-      "fieldConfig": { "defaults": { "unit": "short" }, "overrides": [] }
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short"
+        },
+        "overrides": []
+      }
     },
-
-    { "id": 400, "type": "row", "title": "n8n", "gridPos": { "h": 1, "w": 24, "x": 0, "y": 43 }, "collapsed": false },
+    {
+      "id": 400,
+      "type": "row",
+      "title": "n8n",
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 43
+      },
+      "collapsed": false
+    },
     {
       "id": 41,
       "title": "Active workflows",
       "type": "stat",
-      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 44 },
-      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 0,
+        "y": 44
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "Prometheus"
+      },
       "targets": [
-        { "expr": "n8n_active_workflow_count", "legendFormat": "active" }
+        {
+          "expr": "n8n_active_workflow_count",
+          "legendFormat": "active"
+        }
       ],
-      "fieldConfig": { "defaults": { "unit": "short" }, "overrides": [] }
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short"
+        },
+        "overrides": []
+      }
     },
     {
       "id": 42,
       "title": "Process memory (RSS)",
       "type": "timeseries",
-      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 44 },
-      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 8,
+        "y": 44
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "Prometheus"
+      },
       "targets": [
-        { "expr": "n8n_process_resident_memory_bytes", "legendFormat": "rss" }
+        {
+          "expr": "n8n_process_resident_memory_bytes",
+          "legendFormat": "rss"
+        }
       ],
-      "fieldConfig": { "defaults": { "unit": "bytes" }, "overrides": [] }
+      "fieldConfig": {
+        "defaults": {
+          "unit": "bytes"
+        },
+        "overrides": []
+      }
     },
     {
       "id": 43,
       "title": "Event loop lag",
       "type": "timeseries",
-      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 44 },
-      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 16,
+        "y": 44
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "Prometheus"
+      },
       "targets": [
-        { "expr": "n8n_nodejs_eventloop_lag_seconds", "legendFormat": "lag" }
+        {
+          "expr": "n8n_nodejs_eventloop_lag_seconds",
+          "legendFormat": "lag"
+        }
       ],
-      "fieldConfig": { "defaults": { "unit": "s" }, "overrides": [] }
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s"
+        },
+        "overrides": []
+      }
     },
     {
       "id": 44,
       "title": "Workflow executions/min by status",
       "type": "timeseries",
-      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 52 },
-      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 52
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "Prometheus"
+      },
       "targets": [
-        { "expr": "sum by (status) (rate(n8n_workflow_execution_duration_seconds_count[5m])) * 60", "legendFormat": "{{status}}" }
+        {
+          "expr": "sum by (status) (rate(n8n_workflow_execution_duration_seconds_count[5m])) * 60",
+          "legendFormat": "{{status}}"
+        }
       ],
-      "fieldConfig": { "defaults": { "unit": "short" }, "overrides": [] }
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short"
+        },
+        "overrides": []
+      }
     },
-
-    { "id": 500, "type": "row", "title": "Disk & logs", "gridPos": { "h": 1, "w": 24, "x": 0, "y": 60 }, "collapsed": false },
+    {
+      "id": 500,
+      "type": "row",
+      "title": "Disk & logs",
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 60
+      },
+      "collapsed": false
+    },
     {
       "id": 8,
       "title": "Disk free",
       "type": "stat",
-      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 61 },
-      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 0,
+        "y": 61
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "Prometheus"
+      },
       "targets": [
-        { "expr": "node_filesystem_avail_bytes{mountpoint=\"/\"}", "legendFormat": "free" }
+        {
+          "expr": "node_filesystem_avail_bytes{mountpoint=\"/\"}",
+          "legendFormat": "free"
+        }
       ],
-      "fieldConfig": { "defaults": { "unit": "bytes" }, "overrides": [] }
+      "fieldConfig": {
+        "defaults": {
+          "unit": "bytes"
+        },
+        "overrides": []
+      }
     },
     {
       "id": 51,
       "title": "Error/fatal log lines per minute (all containers)",
       "type": "timeseries",
-      "gridPos": { "h": 8, "w": 16, "x": 8, "y": 61 },
-      "datasource": { "type": "loki", "uid": "Loki" },
+      "gridPos": {
+        "h": 8,
+        "w": 16,
+        "x": 8,
+        "y": 61
+      },
+      "datasource": {
+        "type": "loki",
+        "uid": "Loki"
+      },
       "targets": [
-        { "expr": "sum by (container) (count_over_time({container=~\"apps-.+\"} |~ \"(?i)error|fatal|crit\" [1m]))", "legendFormat": "{{container}}" }
+        {
+          "expr": "sum by (container) (count_over_time({container=~\"apps-.+\"} |~ \"(?i)error|fatal|crit\" [1m]))",
+          "legendFormat": "{{container}}"
+        }
       ]
     },
     {
       "id": 9,
       "title": "Container logs",
       "type": "logs",
-      "gridPos": { "h": 10, "w": 24, "x": 0, "y": 69 },
-      "datasource": { "type": "loki", "uid": "Loki" },
+      "gridPos": {
+        "h": 10,
+        "w": 24,
+        "x": 0,
+        "y": 69
+      },
+      "datasource": {
+        "type": "loki",
+        "uid": "Loki"
+      },
       "targets": [
-        { "expr": "{container=~\".+\"}", "refId": "A" }
+        {
+          "expr": "{container=~\".+\"}",
+          "refId": "A"
+        }
       ],
-      "options": { "showTime": true, "wrapLogMessage": true, "sortOrder": "Descending" }
+      "options": {
+        "showTime": true,
+        "wrapLogMessage": true,
+        "sortOrder": "Descending"
+      }
     },
-
-    { "id": 600, "type": "row", "title": "Caddy (edge) — RED", "gridPos": { "h": 1, "w": 24, "x": 0, "y": 80 }, "collapsed": false },
+    {
+      "id": 600,
+      "type": "row",
+      "title": "Caddy (edge) \u2014 RED",
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 80
+      },
+      "collapsed": false
+    },
     {
       "id": 61,
       "title": "Request rate",
       "type": "timeseries",
-      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 81 },
-      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 0,
+        "y": 81
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "Prometheus"
+      },
       "targets": [
-        { "expr": "sum(rate(caddy_http_requests_total[5m]))", "legendFormat": "req/s" }
+        {
+          "expr": "sum(rate(caddy_http_requests_total[5m]))",
+          "legendFormat": "req/s"
+        }
       ],
-      "fieldConfig": { "defaults": { "unit": "reqps" }, "overrides": [] }
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps"
+        },
+        "overrides": []
+      }
     },
     {
       "id": 62,
       "title": "Error rate % (5xx)",
       "type": "timeseries",
-      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 81 },
-      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 8,
+        "y": 81
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "Prometheus"
+      },
       "targets": [
         {
           "expr": "100 * sum(rate(caddy_http_request_duration_seconds_count{code=~\"5..\"}[5m])) / sum(rate(caddy_http_request_duration_seconds_count[5m]))",
           "legendFormat": "5xx %"
         }
       ],
-      "fieldConfig": { "defaults": { "unit": "percent", "min": 0 }, "overrides": [] }
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "min": 0
+        },
+        "overrides": []
+      }
     },
     {
       "id": 63,
       "title": "Request duration (p50/p95/p99)",
       "type": "timeseries",
-      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 81 },
-      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 16,
+        "y": 81
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "Prometheus"
+      },
       "targets": [
-        { "expr": "histogram_quantile(0.50, sum(rate(caddy_http_request_duration_seconds_bucket[5m])) by (le))", "legendFormat": "p50" },
-        { "expr": "histogram_quantile(0.95, sum(rate(caddy_http_request_duration_seconds_bucket[5m])) by (le))", "legendFormat": "p95" },
-        { "expr": "histogram_quantile(0.99, sum(rate(caddy_http_request_duration_seconds_bucket[5m])) by (le))", "legendFormat": "p99" }
+        {
+          "expr": "histogram_quantile(0.50, sum(rate(caddy_http_request_duration_seconds_bucket[5m])) by (le))",
+          "legendFormat": "p50"
+        },
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(caddy_http_request_duration_seconds_bucket[5m])) by (le))",
+          "legendFormat": "p95"
+        },
+        {
+          "expr": "histogram_quantile(0.99, sum(rate(caddy_http_request_duration_seconds_bucket[5m])) by (le))",
+          "legendFormat": "p99"
+        }
       ],
-      "fieldConfig": { "defaults": { "unit": "s" }, "overrides": [] }
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s"
+        },
+        "overrides": []
+      }
     },
     {
       "id": 64,
       "title": "Requests by status code",
       "type": "timeseries",
-      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 89 },
-      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 89
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "Prometheus"
+      },
       "targets": [
-        { "expr": "sum by (code) (rate(caddy_http_request_duration_seconds_count[5m]))", "legendFormat": "{{code}}" }
+        {
+          "expr": "sum by (code) (rate(caddy_http_request_duration_seconds_count[5m]))",
+          "legendFormat": "{{code}}"
+        }
       ],
-      "fieldConfig": { "defaults": { "unit": "reqps" }, "overrides": [] }
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps"
+        },
+        "overrides": []
+      }
     },
-
-    { "id": 700, "type": "row", "title": "Postgres — extra", "gridPos": { "h": 1, "w": 24, "x": 0, "y": 97 }, "collapsed": false },
+    {
+      "id": 700,
+      "type": "row",
+      "title": "Postgres \u2014 extra",
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 97
+      },
+      "collapsed": false
+    },
     {
       "id": 71,
       "title": "Connections used vs max",
       "type": "timeseries",
-      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 98 },
-      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 0,
+        "y": 98
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "Prometheus"
+      },
       "targets": [
-        { "expr": "sum(pg_stat_database_numbackends)", "legendFormat": "used" },
-        { "expr": "pg_settings_max_connections", "legendFormat": "max" }
+        {
+          "expr": "sum(pg_stat_database_numbackends)",
+          "legendFormat": "used"
+        },
+        {
+          "expr": "pg_settings_max_connections",
+          "legendFormat": "max"
+        }
       ],
-      "fieldConfig": { "defaults": { "unit": "short" }, "overrides": [] }
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short"
+        },
+        "overrides": []
+      }
     },
     {
       "id": 72,
       "title": "Deadlocks & rollbacks /min",
       "type": "timeseries",
-      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 98 },
-      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 8,
+        "y": 98
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "Prometheus"
+      },
       "targets": [
-        { "expr": "sum(rate(pg_stat_database_deadlocks[5m])) * 60", "legendFormat": "deadlocks" },
-        { "expr": "sum(rate(pg_stat_database_xact_rollback[5m])) * 60", "legendFormat": "rollbacks" }
+        {
+          "expr": "sum(rate(pg_stat_database_deadlocks[5m])) * 60",
+          "legendFormat": "deadlocks"
+        },
+        {
+          "expr": "sum(rate(pg_stat_database_xact_rollback[5m])) * 60",
+          "legendFormat": "rollbacks"
+        }
       ],
-      "fieldConfig": { "defaults": { "unit": "short" }, "overrides": [] }
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short"
+        },
+        "overrides": []
+      }
     },
     {
       "id": 73,
       "title": "Temp file spill rate (disk-based sorts)",
       "type": "timeseries",
-      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 98 },
-      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 16,
+        "y": 98
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "Prometheus"
+      },
       "targets": [
-        { "expr": "sum(rate(pg_stat_database_temp_bytes[5m]))", "legendFormat": "temp bytes/s" }
+        {
+          "expr": "sum(rate(pg_stat_database_temp_bytes[5m]))",
+          "legendFormat": "temp bytes/s"
+        }
       ],
-      "fieldConfig": { "defaults": { "unit": "Bps" }, "overrides": [] }
+      "fieldConfig": {
+        "defaults": {
+          "unit": "Bps"
+        },
+        "overrides": []
+      }
     },
-
-    { "id": 800, "type": "row", "title": "Redis — extra", "gridPos": { "h": 1, "w": 24, "x": 0, "y": 106 }, "collapsed": false },
+    {
+      "id": 800,
+      "type": "row",
+      "title": "Redis \u2014 extra",
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 106
+      },
+      "collapsed": false
+    },
     {
       "id": 81,
       "title": "Rejected connections /min",
       "type": "timeseries",
-      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 107 },
-      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 0,
+        "y": 107
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "Prometheus"
+      },
       "targets": [
-        { "expr": "sum(rate(redis_rejected_connections_total[5m])) * 60", "legendFormat": "rejected/min" }
+        {
+          "expr": "sum(rate(redis_rejected_connections_total[5m])) * 60",
+          "legendFormat": "rejected/min"
+        }
       ],
-      "fieldConfig": { "defaults": { "unit": "short" }, "overrides": [] }
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short"
+        },
+        "overrides": []
+      }
     },
     {
       "id": 82,
       "title": "Evicted & expired keys /min",
       "type": "timeseries",
-      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 107 },
-      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 8,
+        "y": 107
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "Prometheus"
+      },
       "targets": [
-        { "expr": "sum(rate(redis_evicted_keys_total[5m])) * 60", "legendFormat": "evicted/min" },
-        { "expr": "sum(rate(redis_expired_keys_total[5m])) * 60", "legendFormat": "expired/min" }
+        {
+          "expr": "sum(rate(redis_evicted_keys_total[5m])) * 60",
+          "legendFormat": "evicted/min"
+        },
+        {
+          "expr": "sum(rate(redis_expired_keys_total[5m])) * 60",
+          "legendFormat": "expired/min"
+        }
       ],
-      "fieldConfig": { "defaults": { "unit": "short" }, "overrides": [] }
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short"
+        },
+        "overrides": []
+      }
     },
     {
       "id": 83,
       "title": "Time since last RDB save",
       "type": "timeseries",
-      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 107 },
-      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 16,
+        "y": 107
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "Prometheus"
+      },
       "targets": [
-        { "expr": "time() - redis_rdb_last_save_timestamp_seconds", "legendFormat": "age" }
+        {
+          "expr": "time() - redis_rdb_last_save_timestamp_seconds",
+          "legendFormat": "age"
+        }
       ],
-      "fieldConfig": { "defaults": { "unit": "s" }, "overrides": [] }
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s"
+        },
+        "overrides": []
+      }
     },
-
-    { "id": 900, "type": "row", "title": "Host — extra (USE)", "gridPos": { "h": 1, "w": 24, "x": 0, "y": 115 }, "collapsed": false },
+    {
+      "id": 900,
+      "type": "row",
+      "title": "Host \u2014 extra (USE)",
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 115
+      },
+      "collapsed": false
+    },
     {
       "id": 91,
       "title": "Filesystem inode usage % (/)",
       "type": "timeseries",
-      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 116 },
-      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 0,
+        "y": 116
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "Prometheus"
+      },
       "targets": [
         {
           "expr": "(1 - (node_filesystem_files_free{mountpoint=\"/\"} / node_filesystem_files{mountpoint=\"/\"})) * 100",
           "legendFormat": "inodes used"
         }
       ],
-      "fieldConfig": { "defaults": { "unit": "percent", "min": 0, "max": 100 }, "overrides": [] }
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "min": 0,
+          "max": 100
+        },
+        "overrides": []
+      }
     },
     {
       "id": 92,
       "title": "Network errors & drops /s",
       "type": "timeseries",
-      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 116 },
-      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 8,
+        "y": 116
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "Prometheus"
+      },
       "targets": [
         {
           "expr": "sum(rate(node_network_receive_errs_total{device!=\"lo\"}[5m])) + sum(rate(node_network_transmit_errs_total{device!=\"lo\"}[5m]))",
@@ -398,30 +1021,75 @@
           "legendFormat": "drops"
         }
       ],
-      "fieldConfig": { "defaults": { "unit": "short" }, "overrides": [] }
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short"
+        },
+        "overrides": []
+      }
     },
     {
       "id": 93,
       "title": "TCP retransmits /s & OOM kills (cumulative)",
       "type": "timeseries",
-      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 116 },
-      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 16,
+        "y": 116
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "Prometheus"
+      },
       "targets": [
-        { "expr": "rate(node_netstat_Tcp_RetransSegs[5m])", "legendFormat": "retransmits/s" },
-        { "expr": "node_vmstat_oom_kill", "legendFormat": "oom_kills" }
+        {
+          "expr": "rate(node_netstat_Tcp_RetransSegs[5m])",
+          "legendFormat": "retransmits/s"
+        },
+        {
+          "expr": "node_vmstat_oom_kill",
+          "legendFormat": "oom_kills"
+        }
       ],
-      "fieldConfig": { "defaults": { "unit": "short" }, "overrides": [] }
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short"
+        },
+        "overrides": []
+      }
     },
-
-    { "id": 1000, "type": "row", "title": "Disaster readiness", "gridPos": { "h": 1, "w": 24, "x": 0, "y": 124 }, "collapsed": false },
+    {
+      "id": 1000,
+      "type": "row",
+      "title": "Disaster readiness",
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 124
+      },
+      "collapsed": false
+    },
     {
       "id": 101,
       "title": "Hours since last successful backup",
       "type": "stat",
-      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 125 },
-      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 125
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "Prometheus"
+      },
       "targets": [
-        { "expr": "(time() - pg_backup_last_success_timestamp_seconds) / 3600", "legendFormat": "{{database}}" }
+        {
+          "expr": "(time() - pg_backup_last_success_timestamp_seconds) / 3600",
+          "legendFormat": "{{database}}"
+        }
       ],
       "fieldConfig": {
         "defaults": {
@@ -429,9 +1097,18 @@
           "thresholds": {
             "mode": "absolute",
             "steps": [
-              { "color": "green", "value": null },
-              { "color": "yellow", "value": 24 },
-              { "color": "red", "value": 48 }
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 24
+              },
+              {
+                "color": "red",
+                "value": 48
+              }
             ]
           }
         },
@@ -442,10 +1119,21 @@
       "id": 102,
       "title": "Last backup run status (1=OK, 0=FAIL)",
       "type": "stat",
-      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 125 },
-      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 125
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "Prometheus"
+      },
       "targets": [
-        { "expr": "pg_backup_last_run_status", "legendFormat": "{{database}}" }
+        {
+          "expr": "pg_backup_last_run_status",
+          "legendFormat": "{{database}}"
+        }
       ],
       "fieldConfig": {
         "defaults": {
@@ -453,8 +1141,14 @@
           "thresholds": {
             "mode": "absolute",
             "steps": [
-              { "color": "red", "value": null },
-              { "color": "green", "value": 1 }
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "green",
+                "value": 1
+              }
             ]
           }
         },
@@ -465,10 +1159,21 @@
       "id": 103,
       "title": "Reverse proxy upstream health",
       "type": "stat",
-      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 133 },
-      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 0,
+        "y": 133
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "Prometheus"
+      },
       "targets": [
-        { "expr": "caddy_reverse_proxy_upstreams_healthy", "legendFormat": "{{upstream}}" }
+        {
+          "expr": "caddy_reverse_proxy_upstreams_healthy",
+          "legendFormat": "{{upstream}}"
+        }
       ],
       "fieldConfig": {
         "defaults": {
@@ -476,8 +1181,14 @@
           "thresholds": {
             "mode": "absolute",
             "steps": [
-              { "color": "red", "value": null },
-              { "color": "green", "value": 1 }
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "green",
+                "value": 1
+              }
             ]
           }
         },
@@ -488,10 +1199,21 @@
       "id": 104,
       "title": "Disk free, predicted in 7 days (/)",
       "type": "stat",
-      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 133 },
-      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 8,
+        "y": 133
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "Prometheus"
+      },
       "targets": [
-        { "expr": "predict_linear(node_filesystem_avail_bytes{mountpoint=\"/\"}[6h], 7*24*3600)", "legendFormat": "predicted free" }
+        {
+          "expr": "predict_linear(node_filesystem_avail_bytes{mountpoint=\"/\"}[6h], 7*24*3600)",
+          "legendFormat": "predicted free"
+        }
       ],
       "fieldConfig": {
         "defaults": {
@@ -499,9 +1221,18 @@
           "thresholds": {
             "mode": "absolute",
             "steps": [
-              { "color": "red", "value": null },
-              { "color": "yellow", "value": 5000000000 },
-              { "color": "green", "value": 20000000000 }
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 5000000000
+              },
+              {
+                "color": "green",
+                "value": 20000000000
+              }
             ]
           }
         },
@@ -512,10 +1243,21 @@
       "id": 105,
       "title": "Redis last bgsave status (1=OK, 0=FAIL)",
       "type": "stat",
-      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 133 },
-      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 16,
+        "y": 133
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "Prometheus"
+      },
       "targets": [
-        { "expr": "redis_rdb_last_bgsave_status", "legendFormat": "bgsave" }
+        {
+          "expr": "redis_rdb_last_bgsave_status",
+          "legendFormat": "bgsave"
+        }
       ],
       "fieldConfig": {
         "defaults": {
@@ -523,60 +1265,239 @@
           "thresholds": {
             "mode": "absolute",
             "steps": [
-              { "color": "red", "value": null },
-              { "color": "green", "value": 1 }
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "green",
+                "value": 1
+              }
             ]
           }
         },
         "overrides": []
       }
     },
-
-    { "id": 1100, "type": "row", "title": "Postgres — query insights (pg_stat_statements)", "gridPos": { "h": 1, "w": 24, "x": 0, "y": 142 }, "collapsed": false },
+    {
+      "id": 1100,
+      "type": "row",
+      "title": "Postgres \u2014 query insights (pg_stat_statements)",
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 142
+      },
+      "collapsed": false
+    },
     {
       "id": 111,
       "title": "Query rate by database (calls/s)",
       "type": "timeseries",
-      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 143 },
-      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 0,
+        "y": 143
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "Prometheus"
+      },
       "targets": [
-        { "expr": "sum by (datname) (rate(pg_stat_statements_calls[5m]))", "legendFormat": "{{datname}}" }
+        {
+          "expr": "sum by (datname) (rate(pg_stat_statements_calls[5m]))",
+          "legendFormat": "{{datname}}"
+        }
       ],
-      "fieldConfig": { "defaults": { "unit": "ops" }, "overrides": [] }
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ops"
+        },
+        "overrides": []
+      }
     },
     {
       "id": 112,
       "title": "Connections by state",
       "type": "timeseries",
-      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 143 },
-      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 8,
+        "y": 143
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "Prometheus"
+      },
       "targets": [
-        { "expr": "sum by (state) (pg_stat_activity_count)", "legendFormat": "{{state}}" }
+        {
+          "expr": "sum by (state) (pg_stat_activity_count)",
+          "legendFormat": "{{state}}"
+        }
       ],
-      "fieldConfig": { "defaults": { "unit": "short" }, "overrides": [] }
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short"
+        },
+        "overrides": []
+      }
     },
     {
       "id": 113,
       "title": "Oldest transaction / query age by state",
       "type": "timeseries",
-      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 143 },
-      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 16,
+        "y": 143
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "Prometheus"
+      },
       "targets": [
-        { "expr": "max by (state) (pg_backend_age_max_xact_age_seconds)", "legendFormat": "xact: {{state}}" },
-        { "expr": "max by (state) (pg_backend_age_max_query_age_seconds)", "legendFormat": "query: {{state}}" }
+        {
+          "expr": "max by (state) (pg_backend_age_max_xact_age_seconds)",
+          "legendFormat": "xact: {{state}}"
+        },
+        {
+          "expr": "max by (state) (pg_backend_age_max_query_age_seconds)",
+          "legendFormat": "query: {{state}}"
+        }
       ],
-      "fieldConfig": { "defaults": { "unit": "s" }, "overrides": [] }
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s"
+        },
+        "overrides": []
+      }
     },
     {
       "id": 114,
       "title": "Slowest queries (mean exec time, top 10)",
       "type": "timeseries",
-      "gridPos": { "h": 9, "w": 24, "x": 0, "y": 151 },
-      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "gridPos": {
+        "h": 9,
+        "w": 24,
+        "x": 0,
+        "y": 151
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "Prometheus"
+      },
       "targets": [
-        { "expr": "topk(10, pg_stat_statements_mean_exec_time_seconds)", "legendFormat": "{{datname}}: {{query}}" }
+        {
+          "expr": "topk(10, pg_stat_statements_mean_exec_time_seconds)",
+          "legendFormat": "{{datname}}: {{query}}"
+        }
       ],
-      "fieldConfig": { "defaults": { "unit": "s" }, "overrides": [] }
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s"
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 1200,
+      "type": "row",
+      "title": "Containers (cAdvisor) \u2014 per-service CPU/memory/network",
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 160
+      },
+      "collapsed": false
+    },
+    {
+      "id": 121,
+      "title": "Container CPU usage % by name",
+      "type": "timeseries",
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 0,
+        "y": 161
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "Prometheus"
+      },
+      "targets": [
+        {
+          "expr": "sum by (name) (rate(container_cpu_usage_seconds_total{name=~\"apps-.+\"}[5m])) * 100",
+          "legendFormat": "{{name}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "min": 0
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 122,
+      "title": "Container memory usage by name",
+      "type": "timeseries",
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 8,
+        "y": 161
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "Prometheus"
+      },
+      "targets": [
+        {
+          "expr": "container_memory_usage_bytes{name=~\"apps-.+\"}",
+          "legendFormat": "{{name}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "bytes",
+          "min": 0
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 123,
+      "title": "Container network I/O by name",
+      "type": "timeseries",
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 16,
+        "y": 161
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "Prometheus"
+      },
+      "targets": [
+        {
+          "expr": "sum by (name) (rate(container_network_receive_bytes_total{name=~\"apps-.+\"}[5m]) + rate(container_network_transmit_bytes_total{name=~\"apps-.+\"}[5m]))",
+          "legendFormat": "{{name}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "Bps",
+          "min": 0
+        },
+        "overrides": []
+      }
     }
   ]
 }

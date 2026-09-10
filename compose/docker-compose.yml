@@ -215,7 +215,7 @@ services:
     # medusa build's output lives in .medusa/server with its own
     # package.json - migrations and start run from there per Medusa's own
     # production docs, not from the project root.
-    command: sh -c "npm install && npx medusa build && cd .medusa/server && npm install && npx medusa db:migrate && npx medusa db:sync-links && NODE_ENV=production npx medusa start"
+    command: sh -c "npm install && npx medusa build && rm -rf node_modules && cd .medusa/server && npm install && npx medusa db:migrate && npx medusa db:sync-links && NODE_ENV=production npx medusa start"
     environment:
       DATABASE_URL: "postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/puntofeste"
       REDIS_URL: "redis://redis:6379/1"
@@ -247,7 +247,7 @@ services:
     # run from .medusa/server per Medusa's production docs). Verified in an
     # isolated /tmp copy end to end (build, db:migrate, db:sync-links against
     # the real DB, and a real medusa start serving 200s) before applying here.
-    command: sh -c "npm install && npx medusa build && cd .medusa/server && npm install && npx medusa db:migrate && npx medusa db:sync-links && NODE_ENV=production npx medusa start"
+    command: sh -c "npm install && npx medusa build && rm -rf node_modules && cd .medusa/server && npm install && npx medusa db:migrate && npx medusa db:sync-links && NODE_ENV=production npx medusa start"
     environment:
       DATABASE_URL: "postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/smoothclothingbrand"
       REDIS_URL: "redis://redis:6379/2"
@@ -280,6 +280,37 @@ services:
       - "--path.rootfs=/rootfs"
       - "--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)"
       - "--collector.textfile.directory=/textfile_collector"
+    networks: [apps]
+
+  # Per-*container* CPU/memory/network - none of the other exporters cover
+  # this (node-exporter is host-level only, postgres/redis-exporter are
+  # single-service). Without this, most of what's actually running (postiz,
+  # temporal, both Medusa backends, medusa, claude-bridge) has zero
+  # monitoring at all. Doesn't need --privileged on Ubuntu/cgroup v2 (only
+  # RHEL/CentOS require that, per cAdvisor's own docs) - the read-only
+  # mounts below are enough.
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:latest
+    restart: unless-stopped
+    command:
+      # Default config walks every container's full filesystem (inode-by-
+      # inode disk usage) every 10s - measured live at 1.2GB RAM and ~92%
+      # CPU sustained on this host, thrashing specifically on the two
+      # Medusa backends' node_modules trees (hundreds of thousands of small
+      # files). `disk` is that expensive per-container walk; everything
+      # else it collects (cpu, memory, network) is what we actually want
+      # and is cheap. 60s housekeeping instead of the 10s default since
+      # nothing here needs second-by-second resolution.
+      - "--disable_metrics=disk,diskIO,percpu,sched,process,hugetlb,referenced_memory,cpu_topology,resctrl,tcp,udp"
+      - "--housekeeping_interval=60s"
+      - "--docker_only=true"
+      - "--store_container_labels=false"
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+      - /dev/disk/:/dev/disk:ro
     networks: [apps]
 
   postgres-exporter:
