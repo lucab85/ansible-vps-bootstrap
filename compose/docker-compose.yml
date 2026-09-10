@@ -164,9 +164,9 @@ services:
     image: ghcr.io/gitroomhq/postiz-app:latest
     restart: unless-stopped
     environment:
-      MAIN_URL: https://postiz.lucaberton.com
-      FRONTEND_URL: https://postiz.lucaberton.com
-      NEXT_PUBLIC_BACKEND_URL: https://postiz.lucaberton.com/api
+      MAIN_URL: https://postiz.openempower.com
+      FRONTEND_URL: https://postiz.openempower.com
+      NEXT_PUBLIC_BACKEND_URL: https://postiz.openempower.com/api
       BACKEND_INTERNAL_URL: http://localhost:3000
       JWT_SECRET: ${POSTIZ_JWT_SECRET}
       DATABASE_URL: "postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/postiz"
@@ -205,7 +205,7 @@ services:
     restart: unless-stopped
     environment:
       PORT: "3001"
-      ALLOWED_HOST: seo.lucaberton.com
+      ALLOWED_HOST: seo.openempower.com
       AUTH_MODE: local_noauth
       DATAFORSEO_API_KEY: ${DATAFORSEO_API_KEY}
       OPENSEO_TELEMETRY_DISABLED: "1"

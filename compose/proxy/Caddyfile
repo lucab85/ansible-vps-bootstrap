@@ -25,11 +25,11 @@ admin-smoothclothingbrand.techmeout.it {
 	reverse_proxy smoothclothingbrand-backend:9000
 }
 
-postiz.lucaberton.com {
+postiz.openempower.com {
 	reverse_proxy postiz:5000
 }
 
-seo.lucaberton.com {
+seo.openempower.com {
 	basic_auth {
 		luca {$OPEN_SEO_BASIC_AUTH_HASH}
 	}
