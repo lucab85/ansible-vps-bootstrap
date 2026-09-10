@@ -204,6 +204,14 @@ services:
     image: ghcr.io/every-app/open-seo:latest
     restart: unless-stopped
     environment:
+      # Without this, Compose's environment vars never reach the app's
+      # Cloudflare Workers bindings (it reads `env.AUTH_MODE` etc. through
+      # workerd, not `process.env` directly) - AUTH_MODE and
+      # DATAFORSEO_API_KEY silently read as unset no matter how many times
+      # the container is rebuilt/recreated, confirmed via /api/health
+      # reporting "AUTH_MODE is unset" while `docker exec ... env` showed it
+      # set. Required per upstream's own reference compose.yaml.
+      CLOUDFLARE_INCLUDE_PROCESS_ENV: "true"
       PORT: "3001"
       ALLOWED_HOST: seo.openempower.com
       AUTH_MODE: local_noauth
@@ -212,6 +220,13 @@ services:
     volumes:
       - open_seo_data:/app/.wrangler
     networks: [apps]
+    # Last link in the startup stagger - see smoothclothingbrand-backend's
+    # depends_on comment. Uses this image's own baked-in HEALTHCHECK
+    # (5 min start_period, checked via `docker inspect`), not one defined
+    # here.
+    depends_on:
+      smoothclothingbrand-backend:
+        condition: service_healthy
 
   medusa:
     build:
@@ -256,6 +271,17 @@ services:
       MEDUSA_BACKEND_URL: ${PUNTOFESTE_BACKEND_URL}
       __MEDUSA_ADMIN_ADDITIONAL_ALLOWED_HOSTS: admin-puntofeste.techmeout.it
     networks: [apps]
+    # Staggers the startup order below (smoothclothingbrand-backend waits on
+    # this) - see that service's depends_on comment for why. 15 min of grace
+    # (60 retries * 15s) covers even a cold `npm install && medusa build` on
+    # this host's 3 vCPUs; once healthy this stays true for the container's
+    # life, it only gates the initial wait.
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:9000/health || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 60
+      start_period: 60s
     depends_on:
       postgres:
         condition: service_healthy
@@ -288,10 +314,29 @@ services:
       MEDUSA_BACKEND_URL: ${SMOOTHCLOTHINGBRAND_BACKEND_URL}
       __MEDUSA_ADMIN_ADDITIONAL_ALLOWED_HOSTS: admin-smoothclothingbrand.techmeout.it
     networks: [apps]
+    # Same healthcheck as puntofeste-backend, same reason - see there.
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:9000/health || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 60
+      start_period: 60s
     depends_on:
       postgres:
         condition: service_healthy
       redis:
+        condition: service_healthy
+      # Not an application dependency - puntofeste-backend and this service
+      # don't know about each other. This is a deliberate startup stagger:
+      # both run a from-scratch `npm install && medusa build` on every
+      # container start (no cached build artifacts survive a restart), and
+      # open-seo does its own heavy Vite build too. All three starting at
+      # once on a full stack bring-up (boot, or `docker compose up -d` after
+      # an unrelated change that cascades via depends_on) pushed load average
+      # to 19 on this host's 3 vCPUs and made even Caddy unresponsive. Chaining
+      # puntofeste -> smoothclothingbrand -> open-seo (next service's
+      # depends_on) means only one heavy build runs at a time.
+      puntofeste-backend:
         condition: service_healthy
 
   node-exporter:
