@@ -225,6 +225,15 @@ services:
       GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
       GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
       BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET}
+      # Caddy proxies to this container over plain HTTP internally, so the
+      # app's own request-based origin detection sees "http", not "https" -
+      # without this override it built OAuth redirect_uri as
+      # http://seo.openempower.com/... which Google rejected
+      # (redirect_uri_mismatch) against the https:// URI registered in
+      # Google Cloud Console. Better Auth's getBaseURL() checks this env var
+      # before falling back to request headers/URL - confirmed in the
+      # compiled bundle (dist/server/assets/index-*.js).
+      BETTER_AUTH_URL: ${BETTER_AUTH_URL}
     volumes:
       - open_seo_data:/app/.wrangler
     networks: [apps]
