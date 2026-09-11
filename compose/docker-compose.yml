@@ -217,6 +217,14 @@ services:
       AUTH_MODE: local_noauth
       DATAFORSEO_API_KEY: ${DATAFORSEO_API_KEY}
       OPENSEO_TELEMETRY_DISABLED: "1"
+      # Google Search Console integration (optional) - see
+      # docs/SELF_HOSTING_GOOGLE_SEARCH_CONSOLE.md inside the container.
+      # Redirect URI registered in Google Cloud Console must be exactly
+      # https://seo.openempower.com/api/gsc/oauth/callback - BETTER_AUTH_SECRET
+      # only encrypts the stored OAuth tokens here, AUTH_MODE stays local_noauth.
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
+      BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET}
     volumes:
       - open_seo_data:/app/.wrangler
     networks: [apps]
