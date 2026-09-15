@@ -72,6 +72,12 @@ services:
       N8N_PORT: 5678
       WEBHOOK_URL: ${WEBHOOK_URL}
       GENERIC_TIMEZONE: ${GENERIC_TIMEZONE}
+      # V8 defaults --max-old-space-size to a fraction of total system RAM
+      # with no awareness of the other ~7 Node processes also running on
+      # this 3.8GB host (measured ~2006MB default ceiling per process here)
+      # - not a current problem (n8n's actual usage is ~300MB) but an
+      # unbounded worst case. Well above observed usage, just capped.
+      NODE_OPTIONS: "--max-old-space-size=768"
       N8N_METRICS: "true"
       N8N_METRICS_INCLUDE_DEFAULT_METRICS: "true"
       N8N_METRICS_INCLUDE_QUEUE_METRICS: "true"
@@ -172,6 +178,11 @@ services:
       DATABASE_URL: "postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/postiz"
       REDIS_URL: "redis://redis:6379/3"
       TEMPORAL_ADDRESS: temporal:7233
+      # Same reasoning as n8n's NODE_OPTIONS comment - this container runs 3
+      # Node processes under pm2 (frontend/backend/orchestrator), each would
+      # otherwise default to its own ~2GB V8 heap ceiling. PM2 inherits env
+      # vars into its children, so this applies to all three independently.
+      NODE_OPTIONS: "--max-old-space-size=512"
       IS_GENERAL: "true"
       # Registration is open until the first (your) account exists - flip
       # this to "true" right after, so the public URL can't be used to
@@ -276,7 +287,7 @@ services:
     # medusa build's output lives in .medusa/server with its own
     # package.json - migrations and start run from there per Medusa's own
     # production docs, not from the project root.
-    command: sh -c "npm install && npx medusa build && rm -rf node_modules && cd .medusa/server && npm install && npx medusa db:migrate && npx medusa db:sync-links && NODE_ENV=production npx medusa start"
+    command: sh -c "npm install && npx medusa build && rm -rf node_modules && cd .medusa/server && npm install && npx medusa db:migrate && npx medusa db:sync-links && NODE_ENV=production NODE_OPTIONS='--max-old-space-size=1024' npx medusa start"
     environment:
       DATABASE_URL: "postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/puntofeste"
       REDIS_URL: "redis://redis:6379/1"
@@ -319,7 +330,7 @@ services:
     # run from .medusa/server per Medusa's production docs). Verified in an
     # isolated /tmp copy end to end (build, db:migrate, db:sync-links against
     # the real DB, and a real medusa start serving 200s) before applying here.
-    command: sh -c "npm install && npx medusa build && rm -rf node_modules && cd .medusa/server && npm install && npx medusa db:migrate && npx medusa db:sync-links && NODE_ENV=production npx medusa start"
+    command: sh -c "npm install && npx medusa build && rm -rf node_modules && cd .medusa/server && npm install && npx medusa db:migrate && npx medusa db:sync-links && NODE_ENV=production NODE_OPTIONS='--max-old-space-size=1024' npx medusa start"
     environment:
       DATABASE_URL: "postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/smoothclothingbrand"
       REDIS_URL: "redis://redis:6379/2"
