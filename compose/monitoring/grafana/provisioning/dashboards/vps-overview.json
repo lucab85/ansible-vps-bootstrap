@@ -1498,6 +1498,110 @@
         },
         "overrides": []
       }
+    },
+    {
+      "id": 1300,
+      "title": "zram",
+      "type": "row",
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 170
+      },
+      "panels": [],
+      "collapsed": false
+    },
+    {
+      "id": 131,
+      "title": "Zram compression ratio",
+      "type": "stat",
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 0,
+        "y": 171
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "Prometheus"
+      },
+      "targets": [
+        {
+          "expr": "node_zram_orig_data_bytes / node_zram_compr_data_bytes",
+          "legendFormat": "ratio"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "decimals": 2
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 132,
+      "title": "Zram: data held vs compressed vs RAM used",
+      "type": "timeseries",
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 8,
+        "y": 171
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "Prometheus"
+      },
+      "targets": [
+        {
+          "expr": "node_zram_orig_data_bytes",
+          "legendFormat": "uncompressed data held"
+        },
+        {
+          "expr": "node_zram_compr_data_bytes",
+          "legendFormat": "compressed size"
+        },
+        {
+          "expr": "node_zram_mem_used_total_bytes",
+          "legendFormat": "actual RAM used (incl. overhead)"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "bytes",
+          "min": 0
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 133,
+      "title": "RAM saved by zram",
+      "type": "stat",
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 16,
+        "y": 171
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "Prometheus"
+      },
+      "targets": [
+        {
+          "expr": "node_zram_orig_data_bytes - node_zram_mem_used_total_bytes",
+          "legendFormat": "saved"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "bytes"
+        },
+        "overrides": []
+      }
     }
   ]
 }
