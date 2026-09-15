@@ -19,7 +19,7 @@ services:
       retries: 5
 
   redis:
-    image: redis:7-alpine
+    image: redis:8-alpine
     restart: unless-stopped
     volumes:
       - redis_data:/data
@@ -139,7 +139,7 @@ services:
   # auto-setup creates its own `temporal`/`temporal_visibility` databases
   # there on first boot) instead of a dedicated Postgres container.
   temporal:
-    image: temporalio/auto-setup:1.28.1
+    image: temporalio/auto-setup:1.29.7
     restart: unless-stopped
     environment:
       DB: postgres12
