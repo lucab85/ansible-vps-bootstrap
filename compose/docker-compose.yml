@@ -377,6 +377,14 @@ services:
     # monorepo layout.
     volumes:
       - /opt/apps/heavenartshop-backend:/app
+      # @medusajs/file-local defaults to <cwd>/static for uploads, and cwd
+      # at runtime is .medusa/server (see the command below) - a directory
+      # `medusa build` regenerates on every container start/restart. Without
+      # a volume pinned exactly there, uploaded product images (written by
+      # the seed script, or later through the admin UI) would vanish on the
+      # next rebuild. Named volume, not a host bind, since nothing outside
+      # the container needs to touch these files directly.
+      - heavenartshop_static:/app/.medusa/server/static
     # Same production-build fix as puntofeste-backend - see that service's
     # comment for the full rationale.
     command: sh -c "npm install && npx medusa build && rm -rf node_modules && cd .medusa/server && npm install && npx medusa db:migrate && npx medusa db:sync-links && NODE_ENV=production NODE_OPTIONS='--max-old-space-size=1024' npx medusa start"
@@ -559,3 +567,4 @@ volumes:
   postiz_config:
   postiz_uploads:
   open_seo_data:
+  heavenartshop_static:
