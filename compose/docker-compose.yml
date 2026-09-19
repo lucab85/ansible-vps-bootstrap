@@ -53,6 +53,7 @@ services:
       - grafana
       - puntofeste-backend
       - smoothclothingbrand-backend
+      - heavenartshop-backend
       - postiz
       - open-seo
 
@@ -253,7 +254,7 @@ services:
     # (5 min start_period, checked via `docker inspect`), not one defined
     # here.
     depends_on:
-      smoothclothingbrand-backend:
+      heavenartshop-backend:
         condition: service_healthy
 
   medusa:
@@ -353,6 +354,52 @@ services:
       postgres:
         condition: service_healthy
       redis:
+        condition: service_healthy
+
+  heavenartshop-backend:
+    image: node:20
+    restart: unless-stopped
+    working_dir: /app
+    # Flat repo layout (package.json/medusa-config.ts at repo root), unlike
+    # puntofeste/smoothclothingbrand's apps/backend nesting - this one was
+    # cloned as a standalone repo, not scaffolded via create-medusa-app's
+    # monorepo layout.
+    volumes:
+      - /opt/apps/heavenartshop-backend:/app
+    # Same production-build fix as puntofeste-backend - see that service's
+    # comment for the full rationale.
+    command: sh -c "npm install && npx medusa build && rm -rf node_modules && cd .medusa/server && npm install && npx medusa db:migrate && npx medusa db:sync-links && NODE_ENV=production NODE_OPTIONS='--max-old-space-size=1024' npx medusa start"
+    environment:
+      DATABASE_URL: "postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/heavenartshop"
+      REDIS_URL: "redis://redis:6379/4"
+      STORE_CORS: ${HEAVENARTSHOP_STOREFRONT_URL}
+      ADMIN_CORS: ${HEAVENARTSHOP_BACKEND_URL}
+      AUTH_CORS: "${HEAVENARTSHOP_STOREFRONT_URL},${HEAVENARTSHOP_BACKEND_URL}"
+      JWT_SECRET: ${HEAVENARTSHOP_JWT_SECRET}
+      COOKIE_SECRET: ${HEAVENARTSHOP_COOKIE_SECRET}
+      MEDUSA_BACKEND_URL: ${HEAVENARTSHOP_BACKEND_URL}
+      __MEDUSA_ADMIN_ADDITIONAL_ALLOWED_HOSTS: admin-heavenartshop.techmeout.it
+      # Optional (@medusajs/medusa/payment-stripe is registered in this
+      # repo's medusa-config.ts) - blank until real Stripe keys are provided.
+      STRIPE_API_KEY: ${HEAVENARTSHOP_STRIPE_API_KEY:-}
+      STRIPE_WEBHOOK_SECRET: ${HEAVENARTSHOP_STRIPE_WEBHOOK_SECRET:-}
+    networks: [apps]
+    # Same healthcheck as puntofeste-backend, same reason - see there. Next
+    # link in the stagger chain: waits on smoothclothingbrand-backend,
+    # open-seo now waits on this instead of smoothclothingbrand-backend
+    # directly.
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:9000/health || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 60
+      start_period: 60s
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      smoothclothingbrand-backend:
         condition: service_healthy
       # Not an application dependency - puntofeste-backend and this service
       # don't know about each other. This is a deliberate startup stagger:

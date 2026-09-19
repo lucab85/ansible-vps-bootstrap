@@ -25,6 +25,10 @@ admin-smoothclothingbrand.techmeout.it {
 	reverse_proxy smoothclothingbrand-backend:9000
 }
 
+admin-heavenartshop.techmeout.it {
+	reverse_proxy heavenartshop-backend:9000
+}
+
 postiz.openempower.com {
 	reverse_proxy postiz:5000
 }
