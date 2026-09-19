@@ -44,7 +44,18 @@ services:
       # into the tracked Caddyfile.
       OPEN_SEO_BASIC_AUTH_HASH: ${OPEN_SEO_BASIC_AUTH_HASH}
     volumes:
-      - ./proxy/Caddyfile:/etc/caddy/Caddyfile:ro
+      # Directory-level, not a single-file bind mount to
+      # /etc/caddy/Caddyfile - a single-file mount pins the container to the
+      # inode that existed at mount/start time, so an edit-tool rewrite on
+      # the host (unlink+recreate, not modify-in-place) is invisible to the
+      # container: `caddy reload`/`caddy validate` inside kept reading the
+      # OLD Caddyfile forever, even though the host file and every syntax
+      # check agreed the new route was there. Same root cause and same fix
+      # as claude-bridge's ~/.claude mount above. Diagnosed by `docker exec
+      # apps-caddy-1 cat /etc/caddy/Caddyfile` showing stale content while
+      # the host file was already correct - confirmed fixed by recreating
+      # (not reloading) the container once, made permanent with this change.
+      - ./proxy:/etc/caddy:ro
       - caddy_data:/data
       - caddy_config:/config
     networks: [apps]
@@ -378,7 +389,7 @@ services:
       JWT_SECRET: ${HEAVENARTSHOP_JWT_SECRET}
       COOKIE_SECRET: ${HEAVENARTSHOP_COOKIE_SECRET}
       MEDUSA_BACKEND_URL: ${HEAVENARTSHOP_BACKEND_URL}
-      __MEDUSA_ADMIN_ADDITIONAL_ALLOWED_HOSTS: admin-heavenartshop.techmeout.it
+      __MEDUSA_ADMIN_ADDITIONAL_ALLOWED_HOSTS: admin-medusa.heavenartshop.com
       # Optional (@medusajs/medusa/payment-stripe is registered in this
       # repo's medusa-config.ts) - blank until real Stripe keys are provided.
       STRIPE_API_KEY: ${HEAVENARTSHOP_STRIPE_API_KEY:-}

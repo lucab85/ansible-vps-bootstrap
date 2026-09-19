@@ -25,7 +25,7 @@ admin-smoothclothingbrand.techmeout.it {
 	reverse_proxy smoothclothingbrand-backend:9000
 }
 
-admin-heavenartshop.techmeout.it {
+admin-medusa.heavenartshop.com {
 	reverse_proxy heavenartshop-backend:9000
 }
 
