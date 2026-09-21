@@ -112,20 +112,30 @@ services:
       postgres:
         condition: service_healthy
 
+  # Migrated from a custom FastAPI+claude-bin bridge to rynfar/meridian
+  # (2000+ stars, actively maintained - the custom bridge was small and
+  # worked, but was a one-off nobody else maintains). Verified in isolation
+  # before switching: real /v1/chat/completions response matching the exact
+  # OpenAI shape n8n's Code node already parses, MERIDIAN_API_KEY enforces
+  # auth the same way BRIDGE_KEY did (401 without it, confirmed). Tradeoff
+  # accepted knowingly, not discovered after the fact: idles at ~288MB vs
+  # the old bridge's ~2MB - real cost on this host, worth it for active
+  # upstream maintenance instead of being the only one who understands the
+  # code. Reuses the CLAUDE_BRIDGE_KEY secret and port 8000 so nothing about
+  # how n8n calls this needed to change.
   claude-bridge:
     build:
       context: ./claude-bridge
       dockerfile: Dockerfile
     restart: unless-stopped
     environment:
-      BRIDGE_KEY: ${CLAUDE_BRIDGE_KEY}
-      CLAUDE_TIMEOUT: "300"
-      CLAUDE_CONCURRENCY: "1"
+      MERIDIAN_API_KEY: ${CLAUDE_BRIDGE_KEY}
+      MERIDIAN_HOST: "0.0.0.0"
+      MERIDIAN_PORT: "8000"
     volumes:
       # Same OAuth session as the interactive Claude Code session on this
       # host, mounted read-only — the bridge shares its usage quota, it
-      # doesn't have a separate identity. --no-session-persistence in the
-      # bridge's invocation means it never needs to write here.
+      # doesn't have a separate identity.
       #
       # Mount the whole ~/.claude directory, not individual files inside
       # it (credentials.json, settings.json) — a single-file bind mount
@@ -139,9 +149,20 @@ services:
       # immediately. (Diagnosed by diffing the container's and host's
       # .credentials.json byte-for-byte: different tokens, different
       # expiresAt — confirmed fixed by restarting the container so it
-      # re-resolves the mount, then made permanent with this change.)
+      # re-resolves the mount, then made permanent with this change. Same
+      # root cause as the Caddyfile mount bug elsewhere in this file -
+      # this is the original case it was diagnosed against.)
       - /home/deploy/.claude.json:/root/.claude.json:ro
       - /home/deploy/.claude:/root/.claude:ro
+      # Meridian refuses to start without a readable machine-id ("cannot
+      # capture a process incarnation on this host" - it ties session
+      # tracking to one) - a bare node:22 image has none. Bind-mounting the
+      # real host's is simpler and more correct than generating a fake one
+      # that would change on every rebuild.
+      - /etc/machine-id:/etc/machine-id:ro
+      # Session cache, telemetry, model-pricing overrides, etc. - survives
+      # container recreation instead of resetting every time.
+      - claude_bridge_config:/root/.config/meridian
     networks: [apps]
 
   # Postiz's job-scheduling backend. Upstream's own docker-compose pairs this
@@ -568,3 +589,4 @@ volumes:
   postiz_uploads:
   open_seo_data:
   heavenartshop_static:
+  claude_bridge_config:
