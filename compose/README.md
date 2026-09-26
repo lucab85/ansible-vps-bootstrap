@@ -242,6 +242,22 @@ doesn't resolve yet.
   `node_zram_mem_used_total_bytes`, `node_zram_mem_limit_bytes`,
   `node_zram_disksize_bytes`, `node_zram_same_pages`) since node-exporter
   has no built-in zram collector. Feeds the "zram" dashboard row.
+- `disk-cleanup.sh` — nightly Docker/log hygiene (cron: `30 3 * * *
+  /opt/apps/disk-cleanup.sh`, same not-Ansible-managed pattern as the two
+  scripts above; install with `(crontab -l 2>/dev/null; echo "30 3 * * *
+  /opt/apps/disk-cleanup.sh") | crontab -`; offset 30 min after the Postgres
+  backup so the two don't contend for I/O). Prunes Docker build cache and
+  dangling images (`docker image prune -f`, deliberately never `-a` — an
+  `-a` prune removes *any* image not attached to a running container, which
+  would be fine today but is one accidental `docker compose down` away from
+  deleting an image that takes 10+ minutes to rebuild, like `open-seo` — see
+  its own section below), removes containers stopped >24h, vacuums the
+  systemd journal down to 200MB, clears the APT package cache, and clears
+  stale `/tmp/*-seo-fix`/`*-scratch` scratch clones older than 2 days. Logs
+  to `/opt/apps/disk-cleanup.log`. Added after the host hit 93% disk usage
+  (57GB volume down to 4GB free) from accumulated build cache and dangling
+  images — see the "known follow-up" note under Notes, now closed for the
+  image/build-cache piece.
 - `.env.example` — template for the real `/opt/apps/.env` on the VPS
   (secrets, never committed).
 - `configure-env.sh` — run **on the VPS**, reads `/opt/apps/.env` and writes
@@ -592,15 +608,20 @@ Ansible-managed pieces. Notable here only because `zram-metrics.sh` (see
   `DATA_SOURCE_NAME` target) is enough — the view reports every query
   cluster-wide via its `dbid`/`datname` columns, not just that database's own
   queries.
-- Disk/log hygiene beyond Loki's 7-day retention (Docker image/build-cache
-  pruning, n8n execution pruning, disk-usage alerting) is a known follow-up,
-  not yet automated — `docker image prune -a -f && docker builder prune -a
-  -f` has been run by hand a few times after iterative builds (recovered
-  ~3.3GB the last time, mostly stale build cache the default `prune -f`
-  doesn't touch). Postgres backups are automated (see `backup-postgres.sh`
-  above), but only *on* the VPS — an off-VPS copy (S3, another host, etc.)
-  is still not automated; a single-disk failure currently takes out both the
-  live data and its backups.
+- Disk/log hygiene beyond Loki's 7-day retention: Docker build-cache and
+  dangling-image pruning, journal vacuuming, and APT cache cleanup now run
+  nightly via `disk-cleanup.sh` (see "Layout" above), added after the host
+  hit 93% disk usage. Deliberately conservative — plain `docker image prune
+  -f` (dangling only), not the `-a -f && docker builder prune -a -f`
+  combination that had been run by hand a few times before (recovered
+  ~3.3GB the last time): `-a` removes any image not attached to a running
+  container, which is one accidental `docker compose down` away from
+  deleting something like `open-seo`'s image that takes 10+ minutes to
+  rebuild from source. n8n execution pruning and disk-usage alerting are
+  still open follow-ups. Postgres backups are automated (see
+  `backup-postgres.sh` above), but only *on* the VPS — an off-VPS copy (S3,
+  another host, etc.) is still not automated; a single-disk failure
+  currently takes out both the live data and its backups.
 - Cloudflare-proxied domains (orange cloud) resolve to Cloudflare edge IPs,
   not the VPS's real IP — fine for most things, but combined with
   Cloudflare's Flexible SSL mode it produces an infinite same-URL redirect
