@@ -427,11 +427,16 @@ secondary mode).
   underlying Google API surfaces in the UI as a generic "Connection
   expired. Reconnect to continue.", not the real status code (the app
   deliberately doesn't log the detail for this class of error).
-- Upgraded 0.1.7 → 0.1.8 (pinned, not `:latest`) — minor release, no
-  relevant open issues for this deployment (the one open issue at the time,
-  about scheduled rank-tracking checks, doesn't apply: Docker self-hosting
-  doesn't run scheduled rank-tracking at all, only manually-triggered
-  checks, per the image's own preflight output).
+- Upgraded 0.1.7 → 0.1.8 → 0.1.9 (pinned, not `:latest`). 0.1.8: minor
+  release, no relevant open issues for this deployment (the one open issue
+  at the time, about scheduled rank-tracking checks, doesn't apply: Docker
+  self-hosting doesn't run scheduled rank-tracking at all, only
+  manually-triggered checks, per the image's own preflight output). 0.1.9
+  (2026-09-17): saved reports/reusable report templates readable from MCP
+  clients, Search Console MCP filtering by position/impressions, and rank-
+  tracking fixes (unsupported-location rejection, failure surfaced when no
+  keywords could be checked, US state-abbreviation location matching) — no
+  compose/env changes needed.
 
 ## Monitoring stack
 

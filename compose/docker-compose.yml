@@ -245,7 +245,7 @@ services:
   # auth-protected reverse proxy") - that's the caddy basic_auth block on
   # its Caddyfile route, not anything this container does itself.
   open-seo:
-    image: ghcr.io/every-app/open-seo:v0.1.8
+    image: ghcr.io/every-app/open-seo:v0.1.9
     restart: unless-stopped
     environment:
       # Without this, Compose's environment vars never reach the app's
